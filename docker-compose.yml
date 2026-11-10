@@ -22,6 +22,14 @@ services:
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
     # Se vuelve a encender solo si se cae o al reiniciar Docker.
     restart: unless-stopped
+    # Topes: aunque llegue mucho tráfico, el sitio no puede usar más que
+    # esto, así tu laptop sigue respondiendo. Si se pasa de memoria, Docker
+    # lo reinicia solo.
+    mem_limit: 1g
+    cpus: 1.5
+    # Conteo de cuentas creadas por IP; sobrevive a los reinicios.
+    volumes:
+      - datos:/app/datos
     # Solo para probar en esta laptop. "127.0.0.1" hace que nadie más en
     # tu red pueda entrar por aquí; desde internet se entra por el túnel.
     ports:
@@ -34,7 +42,11 @@ services:
       # El token del túnel se copia de Cloudflare y va en .env.local.
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
     restart: unless-stopped
+    mem_limit: 256m
     depends_on:
       - lumbre
     # Solo se enciende con el perfil "internet" (npm run docker:internet).
     profiles: ["internet"]
+
+volumes:
+  datos:

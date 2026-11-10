@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# datos locales de Lumbre (conteo de cuentas por IP)
+/datos
+
 # vercel
 .vercel
 

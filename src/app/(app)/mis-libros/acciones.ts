@@ -7,10 +7,14 @@ import { leerLibro, obtenerLibro, olvidarLibro } from "@/lib/fuentes";
 import { EnlaceNoPermitido, validarEnlace } from "@/lib/fuentes/descargarExterno";
 import { ALMACEN } from "@/lib/fuentes/propio";
 import { PdfSinTexto } from "@/lib/lectura/pdf";
+import { ipDelVisitante, limites } from "@/lib/limites";
 import { obtenerUsuario } from "@/lib/sesion";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 
 type Resultado = { ok: true; id: string } | { ok: false; error: string };
+
+const LIMITE_LIBROS =
+  "Agregaste muchos libros en poco tiempo. Espera un rato y vuelve a intentar.";
 
 function limpiar(valor: unknown, maximo: number): string {
   return typeof valor === "string" ? valor.trim().slice(0, maximo) : "";
@@ -46,6 +50,9 @@ export async function agregarEnlace(
   const titulo = limpiar(tituloRecibido, 300);
   const autor = limpiar(autorRecibido, 200);
   if (!titulo) return { ok: false, error: "Escribe el título del libro." };
+  if (!limites.libros(await ipDelVisitante())) {
+    return { ok: false, error: LIMITE_LIBROS };
+  }
 
   let url: string;
   try {
@@ -95,6 +102,11 @@ export async function registrarArchivo(
   if (!titulo) {
     await supabase.storage.from(ALMACEN).remove([ruta]);
     return { ok: false, error: "Escribe el título del libro." };
+  }
+  if (!limites.libros(await ipDelVisitante())) {
+    // El archivo ya se había subido: se borra para no ocupar espacio.
+    await supabase.storage.from(ALMACEN).remove([ruta]);
+    return { ok: false, error: LIMITE_LIBROS };
   }
 
   const { data, error } = await supabase

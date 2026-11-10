@@ -34,7 +34,10 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 # El sitio corre con un usuario sin permisos de administrador.
-RUN addgroup -S lumbre && adduser -S lumbre -G lumbre
+# /app/datos guarda el conteo de cuentas por IP (es un volumen de Docker).
+RUN addgroup -S lumbre && adduser -S lumbre -G lumbre \
+    && mkdir -p /app/datos && chown lumbre:lumbre /app/datos
+ENV LUMBRE_DATOS=/app/datos
 COPY --from=construccion /app/public ./public
 COPY --from=construccion --chown=lumbre:lumbre /app/.next/standalone ./
 COPY --from=construccion --chown=lumbre:lumbre /app/.next/static ./.next/static

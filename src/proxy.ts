@@ -1,17 +1,34 @@
 // PROXY: código que corre antes de cada página (antes se llamaba "middleware").
-// Hace dos cosas:
-//   1. Renueva la sesión de Supabase si está por vencer.
-//   2. Manda al login a quien no ha iniciado sesión, y saca del login
+// Hace tres cosas:
+//   1. Frena a quien manda demasiadas peticiones (para que no tumben el sitio).
+//   2. Renueva la sesión de Supabase si está por vencer.
+//   3. Manda al login a quien no ha iniciado sesión, y saca del login
 //      a quien ya la inició.
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { crearLimitador, ipDesdeEncabezados } from "@/lib/limites/limitador";
 import { SUPABASE_CLAVE, SUPABASE_URL } from "@/lib/supabase/config";
 
 // Páginas que se pueden ver sin iniciar sesión.
 const RUTAS_PUBLICAS = ["/login", "/crear-cuenta", "/recuperar"];
 
+// Freno general: peticiones por minuto desde una misma IP. Es alto a
+// propósito, porque navegar normal ya hace varias (Next.js precarga las
+// páginas de los enlaces que ves); solo frena a quien inunda el sitio.
+const limiteGeneral = crearLimitador({ maximo: 600, ventanaMs: 60_000 });
+
 export async function proxy(request: NextRequest) {
+  if (!limiteGeneral(ipDesdeEncabezados(request.headers))) {
+    return new NextResponse(
+      "Demasiadas solicitudes desde tu conexión. Espera un minuto y vuelve a intentar.",
+      {
+        status: 429,
+        headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" },
+      },
+    );
+  }
+
   let respuesta = NextResponse.next({ request });
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_CLAVE, {

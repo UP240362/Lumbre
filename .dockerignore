@@ -3,6 +3,7 @@ node_modules
 .next
 .git
 .claude
+datos
 # Las claves nunca van dentro de la imagen: llegan como variables.
 .env*
 !.env.example

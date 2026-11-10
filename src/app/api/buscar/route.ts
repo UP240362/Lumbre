@@ -5,8 +5,17 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { buscarLibros } from "@/lib/fuentes";
+import { limites } from "@/lib/limites";
+import { ipDesdeEncabezados } from "@/lib/limites/limitador";
 
 export async function GET(request: NextRequest) {
+  if (!limites.busqueda(ipDesdeEncabezados(request.headers))) {
+    return NextResponse.json(
+      { error: "Demasiadas búsquedas. Espera un momento." },
+      { status: 429, headers: { "Retry-After": "60" } },
+    );
+  }
+
   const consulta = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (consulta.length < 2) return NextResponse.json({ libros: [] });

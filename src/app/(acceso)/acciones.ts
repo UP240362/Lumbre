@@ -6,11 +6,19 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  MAX_CUENTAS_POR_IP,
+  ipDelVisitante,
+  liberarCuenta,
+  limites,
+  reservarCuenta,
+} from "@/lib/limites";
 import { rutaDeEntrada } from "@/lib/sesion";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import type { EstadoFormulario } from "./tipos";
 
 const MIN_CONTRASENA = 8;
+const MUCHOS_INTENTOS = "Demasiados intentos. Espera unos minutos y vuelve a probar.";
 
 // Convierte los errores de Supabase (en inglés) a mensajes en español.
 function traducirError(error: { code?: string }): string {
@@ -62,6 +70,9 @@ export async function iniciarSesion(
   if (!correo || !contrasena) {
     return { error: "Escribe tu correo y tu contraseña.", correo };
   }
+  if (!limites.login(await ipDelVisitante())) {
+    return { error: MUCHOS_INTENTOS, correo };
+  }
 
   const supabase = await crearClienteServidor();
   const { error } = await supabase.auth.signInWithPassword({
@@ -93,6 +104,19 @@ export async function crearCuenta(
     };
   }
 
+  // Límites por IP: intentos por hora y cuentas creadas por día.
+  const ip = await ipDelVisitante();
+  if (!limites.registro(ip)) {
+    return { error: MUCHOS_INTENTOS, correo, nombre };
+  }
+  if (!(await reservarCuenta(ip))) {
+    return {
+      error: `Desde tu conexión ya se crearon ${MAX_CUENTAS_POR_IP} cuentas en las últimas 24 horas. Intenta mañana.`,
+      correo,
+      nombre,
+    };
+  }
+
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.auth.signUp({
     email: correo,
@@ -104,7 +128,11 @@ export async function crearCuenta(
     },
   });
 
-  if (error) return { error: traducirError(error), correo, nombre };
+  if (error) {
+    // La cuenta no se creó: se devuelve el lugar apartado.
+    await liberarCuenta(ip);
+    return { error: traducirError(error), correo, nombre };
+  }
 
   // Si Supabase no pide confirmar el correo, ya hay sesión: entramos directo.
   if (data.session) redirect(await rutaDeEntrada());
@@ -121,6 +149,9 @@ export async function pedirRecuperacion(
 ): Promise<EstadoFormulario> {
   const correo = texto(datos, "correo").trim();
   if (!correo) return { error: "Escribe tu correo." };
+  if (!limites.recuperacion(await ipDelVisitante())) {
+    return { error: MUCHOS_INTENTOS, correo };
+  }
 
   const supabase = await crearClienteServidor();
   const { error } = await supabase.auth.resetPasswordForEmail(correo, {

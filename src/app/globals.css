@@ -1,26 +1,118 @@
 @import "tailwindcss";
 
+/*
+  COLORES DE LUMBRE
+  - Las "orillas" (barra lateral, superior e inferior) siempre son negro/naranja.
+  - El área de contenido cambia según la "luz" elegida.
+  La luz se indica con el atributo data-luz en la etiqueta <html>.
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Orillas: nunca cambian */
+  --naranja: #f26b0f;
+  --negro: #0b0b0b;
+  --orilla-superficie: #171717;
+  --orilla-borde: #2e2e2e;
+  --orilla-texto: #f4efe8;
+  --orilla-tenue: #a8a29a;
+
+  /* Tamaño del texto de lectura (lo cambia el usuario) */
+  --tamano-lectura: 19px;
+
+  /* Luz amarilla (la que se usa si no se ha elegido ninguna) */
+  --fondo: #f6e7c1;
+  --texto: #2e2414;
+  --superficie: #fbf0d6;
+  --borde: #e2cd9a;
+  --tenue: #6b5b3e;
+  --pista: #dcc690;
+  --acento: #a83f00;
 }
 
+:root[data-luz="blanca"] {
+  --fondo: #ffffff;
+  --texto: #171717;
+  --superficie: #f6f6f4;
+  --borde: #e0e0dc;
+  --tenue: #5f5f5f;
+  --pista: #e0e0dc;
+  --acento: #b34700;
+}
+
+:root[data-luz="negra"] {
+  --fondo: #0e0e0e;
+  --texto: #d9d4cc;
+  --superficie: #181818;
+  --borde: #2e2e2e;
+  --tenue: #9a948b;
+  --pista: #2e2e2e;
+  --acento: #f26b0f;
+}
+
+/*
+  Aquí le decimos a Tailwind que existen estos colores y tipografías.
+  Gracias a esto podemos escribir clases como bg-fondo, text-texto,
+  border-naranja, font-serif, etc.
+*/
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-naranja: var(--naranja);
+  --color-negro: var(--negro);
+  --color-orilla: var(--negro);
+  --color-orilla-superficie: var(--orilla-superficie);
+  --color-orilla-borde: var(--orilla-borde);
+  --color-orilla-texto: var(--orilla-texto);
+  --color-orilla-tenue: var(--orilla-tenue);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-fondo: var(--fondo);
+  --color-texto: var(--texto);
+  --color-superficie: var(--superficie);
+  --color-borde: var(--borde);
+  --color-tenue: var(--tenue);
+  --color-pista: var(--pista);
+  --color-acento: var(--acento);
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-serif: var(--font-literata), Georgia, serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--negro);
+  color: var(--orilla-texto);
+  font-family: var(--font-sans);
+}
+
+/* Contorno naranja al navegar con teclado */
+:focus-visible {
+  outline: 2px solid var(--naranja);
+  outline-offset: 2px;
+}
+
+@layer components {
+  /* Botón principal: naranja con texto negro */
+  .boton-primario {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border-radius: 0.75rem;
+    background: var(--naranja);
+    color: var(--negro);
+    font-weight: 600;
+    transition: filter 0.15s;
+  }
+  .boton-primario:hover {
+    filter: brightness(1.08);
+  }
+
+  /* Texto de lectura: Literata, columna angosta y renglones amplios */
+  .lectura {
+    max-width: 680px;
+    font-family: var(--font-serif);
+    font-size: var(--tamano-lectura);
+    line-height: 1.75;
+  }
+  .lectura p + p {
+    margin-top: 1.4em;
+  }
 }

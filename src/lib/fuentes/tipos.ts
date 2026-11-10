@@ -7,13 +7,15 @@ import type { Capitulo } from "../lectura/tipos";
 
 // Las fuentes que existen. Para añadir otra (Standard Ebooks, Open Library,
 // Wikisource…) se agrega su nombre aquí y en NOMBRES_FUENTE.
-export type IdFuente = "gutenberg" | "elejandria" | "archive";
+// "propio" son los libros que cada usuario agrega (enlaces y archivos).
+export type IdFuente = "gutenberg" | "elejandria" | "archive" | "propio";
 
 // Nombre de cada fuente para mostrarlo en pantalla.
 export const NOMBRES_FUENTE: Record<IdFuente, string> = {
   gutenberg: "Gutenberg",
   elejandria: "Elejandría",
   archive: "Internet Archive",
+  propio: "Mis libros",
 };
 
 // Un libro, venga de donde venga.

@@ -9,6 +9,13 @@ const PARECE_TITULO =
   /^(cap[ií]tulo|parte|libro|acto|escena|jornada|canto|pr[oó]logo|ep[ií]logo|introducci[oó]n|dedicatoria|advertencia)\b/i;
 const NUMERO_ROMANO = /^[IVXLCDM]{1,7}\.?$/;
 
+export function pareceTitulo(renglon: string): boolean {
+  return (
+    renglon.length <= 90 &&
+    (PARECE_TITULO.test(renglon) || NUMERO_ROMANO.test(renglon))
+  );
+}
+
 export function textoACapitulos(texto: string): Capitulo[] {
   const parrafos = texto
     .replace(/\r\n?/g, "\n")
@@ -31,9 +38,7 @@ export function textoACapitulos(texto: string): Capitulo[] {
   let actual: Capitulo = { titulo: "", parrafos: [] };
 
   for (const parrafo of parrafos) {
-    const esTitulo =
-      parrafo.length <= 90 &&
-      (PARECE_TITULO.test(parrafo) || NUMERO_ROMANO.test(parrafo));
+    const esTitulo = pareceTitulo(parrafo);
 
     if (!esTitulo) {
       actual.parrafos.push(parrafo);

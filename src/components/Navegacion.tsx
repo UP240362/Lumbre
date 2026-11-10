@@ -10,6 +10,7 @@ import {
   IconoCorazon,
   IconoExplorar,
   IconoInicio,
+  IconoLibro,
   IconoPerfil,
 } from "./Iconos";
 import { SelectorLuz } from "./SelectorLuz";
@@ -18,6 +19,7 @@ const ENLACES = [
   { href: "/", nombre: "Inicio", Icono: IconoInicio },
   { href: "/explorar", nombre: "Explorar", Icono: IconoExplorar },
   { href: "/favoritos", nombre: "Favoritos", Icono: IconoCorazon },
+  { href: "/mis-libros", nombre: "Mis libros", Icono: IconoLibro },
   { href: "/perfil", nombre: "Mi perfil", Icono: IconoPerfil },
 ];
 

@@ -12,6 +12,7 @@ import { simplificar } from "../texto";
 import { archive } from "./archive";
 import { elejandria } from "./elejandria";
 import { gutenberg } from "./gutenberg";
+import { propio } from "./propio";
 import type { FuenteLibros, IdFuente, Libro } from "./tipos";
 
 export type { IdFuente, Libro } from "./tipos";
@@ -21,6 +22,7 @@ const FUENTES: Record<IdFuente, FuenteLibros> = {
   gutenberg,
   elejandria,
   archive,
+  propio,
 };
 
 export function esFuente(valor: unknown): valor is IdFuente {
@@ -80,6 +82,11 @@ export async function obtenerLibro(
 
 const LIBROS_EN_MEMORIA = 6;
 const memoria = new Map<string, Promise<Capitulo[]>>();
+
+// Saca un libro de la memoria (por ejemplo, cuando el usuario lo elimina).
+export function olvidarLibro(libro: { fuente: string; id: string }) {
+  memoria.delete(`${libro.fuente}:${libro.id}`);
+}
 
 export function leerLibro(libro: Libro): Promise<Capitulo[]> {
   const clave = `${libro.fuente}:${libro.id}`;

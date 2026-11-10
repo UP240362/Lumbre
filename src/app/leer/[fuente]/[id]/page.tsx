@@ -7,6 +7,7 @@ import { esFuente, leerLibro, obtenerLibro } from "@/lib/fuentes";
 import { NOMBRES_FUENTE } from "@/lib/fuentes/tipos";
 import { largoDe } from "@/lib/lectura/repartir";
 import { obtenerPerfil } from "@/lib/sesion";
+import { COLUMNAS_SUBRAYADO, type Subrayado } from "@/lib/subrayados";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { VistaLector } from "./VistaLector";
 
@@ -45,7 +46,7 @@ function Marco({ children }: { children: React.ReactNode }) {
 async function Lector({ params, searchParams }: Parametros) {
   await obtenerPerfil(); // exige sesión iniciada
   const { fuente, id: idCrudo } = await params;
-  const { c } = await searchParams;
+  const { c, s } = await searchParams;
   if (!esFuente(fuente)) notFound();
   const id = decodeURIComponent(idCrudo);
 
@@ -84,14 +85,28 @@ async function Lector({ params, searchParams }: Parametros) {
     largos.slice(0, n).reduce((suma, largo) => suma + largo, 0);
   const ultimo = capitulos.length - 1;
 
+  // Subrayados y notas de este libro (de todos sus capítulos, para el panel).
+  const supabase = await crearClienteServidor();
+  const { data: filasSubrayados } = await supabase
+    .from("subrayados")
+    .select(COLUMNAS_SUBRAYADO)
+    .eq("fuente", fuente)
+    .eq("book_id", id)
+    .order("creado_en");
+  const subrayados = (filasSubrayados ?? []) as Subrayado[];
+  // "?s=<id>" pide abrir el libro justo en ese subrayado.
+  const objetivo =
+    typeof s === "string" ? subrayados.find((x) => x.id === s) : undefined;
+
   let indice = 0;
   let fraccionInicial = 0;
   const pedido = typeof c === "string" ? Number.parseInt(c, 10) : Number.NaN;
 
   if (Number.isInteger(pedido)) {
     indice = Math.min(ultimo, Math.max(0, pedido - 1));
+  } else if (objetivo) {
+    indice = Math.min(ultimo, objetivo.capitulo);
   } else {
-    const supabase = await crearClienteServidor();
     const { data } = await supabase
       .from("progreso_lectura")
       .select("capitulo, porcentaje")
@@ -130,6 +145,8 @@ async function Lector({ params, searchParams }: Parametros) {
       letrasTotal={letrasTotal}
       fraccionInicial={fraccionInicial}
       esFavorito={favoritos.has(claveLibro(libro))}
+      subrayados={subrayados}
+      subrayadoInicial={objetivo?.capitulo === indice ? objetivo.id : null}
     />
   );
 }

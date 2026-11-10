@@ -13,7 +13,7 @@ export function BotonEliminar({ id, titulo }: { id: string; titulo: string }) {
 
   function eliminar() {
     const seguro = window.confirm(
-      `¿Eliminar «${titulo}» de tus libros?\n\nSe borrará también su archivo y tu avance. No se puede deshacer.`,
+      `¿Eliminar «${titulo}» de tus libros?\n\nSe borrarán también su archivo, tu avance y tus subrayados y notas. No se puede deshacer.`,
     );
     if (!seguro) return;
     iniciar(async () => {

@@ -138,6 +138,7 @@ export async function eliminarLibroPropio(
   }
   await supabase.from("progreso_lectura").delete().eq("fuente", "propio").eq("book_id", id);
   await supabase.from("libros_favoritos").delete().eq("fuente", "propio").eq("book_id", id);
+  await supabase.from("subrayados").delete().eq("fuente", "propio").eq("book_id", id);
   const { error } = await supabase.from("libros_propios").delete().eq("id", id);
 
   olvidarLibro({ fuente: "propio", id });

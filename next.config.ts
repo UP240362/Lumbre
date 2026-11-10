@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Oculta el círculo "N" que Next.js muestra en pantalla mientras se
+  // desarrolla. Los errores se siguen mostrando cuando los hay.
+  devIndicators: false,
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

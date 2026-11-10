@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BotonFavorito } from "@/components/BotonFavorito";
-import { IconoAtras } from "@/components/Iconos";
+import { IconoAtras, IconoNota } from "@/components/Iconos";
 import { LUCES, TAMANO_MAX, TAMANO_MIN, TAMANO_PASO } from "@/lib/luz";
 import {
   guardarLuz,
@@ -18,7 +18,15 @@ import {
   useLuz,
   useTamanoLetra,
 } from "@/lib/preferencias";
+import type { Subrayado } from "@/lib/subrayados";
 import { guardarAvance } from "../../acciones";
+import {
+  BarraSeleccion,
+  EditorSubrayado,
+  PanelNotas,
+  ParrafosAnotados,
+  useAnotaciones,
+} from "./Anotaciones";
 
 type Props = {
   libro: { id: string; fuente: string; titulo: string; autor: string };
@@ -34,6 +42,8 @@ type Props = {
   // En qué punto del capítulo se quedó la última vez (0 = inicio, 1 = final).
   fraccionInicial: number;
   esFavorito: boolean;
+  subrayados: Subrayado[]; // de todo el libro
+  subrayadoInicial: string | null; // al abrir, llevar la vista a este
 };
 
 // Qué tanto de la página se ha recorrido: 0 arriba, 1 hasta abajo.
@@ -54,10 +64,18 @@ export function VistaLector({
   letrasTotal,
   fraccionInicial,
   esFavorito,
+  subrayados,
+  subrayadoInicial,
 }: Props) {
   const router = useRouter();
   const luz = useLuz();
   const tamano = useTamanoLetra();
+  const notas = useAnotaciones({
+    libro,
+    capitulo: indice,
+    parrafos,
+    iniciales: subrayados,
+  });
 
   const porcentajeDe = (fraccion: number) =>
     letrasTotal > 0
@@ -93,11 +111,20 @@ export function VistaLector({
       espera = setTimeout(() => guardar(valor), 1500);
     }
 
-    // Al abrir el capítulo: volver a donde se quedó y guardar que está aquí.
-    const recorrible =
-      document.documentElement.scrollHeight - window.innerHeight;
-    window.scrollTo(0, Math.max(0, recorrible) * fraccionInicial);
-    guardar(porcentajeDe(fraccionInicial));
+    // Al abrir el capítulo: ir al subrayado pedido (desde el panel de
+    // notas) o volver a donde se quedó; y guardar que está aquí.
+    const marca = subrayadoInicial
+      ? document.querySelector(`[data-subrayado="${subrayadoInicial}"]`)
+      : null;
+    if (marca) {
+      marca.scrollIntoView({ block: "center" });
+      guardar(porcentajeDe(fraccionRecorrida()));
+    } else {
+      const recorrible =
+        document.documentElement.scrollHeight - window.innerHeight;
+      window.scrollTo(0, Math.max(0, recorrible) * fraccionInicial);
+      guardar(porcentajeDe(fraccionInicial));
+    }
 
     window.addEventListener("scroll", alDesplazar, { passive: true });
     return () => {
@@ -122,7 +149,8 @@ export function VistaLector({
     "flex size-10 shrink-0 items-center justify-center rounded-full border border-orilla-borde text-orilla-texto transition-colors hover:border-naranja disabled:opacity-40";
 
   return (
-    <div className="flex min-h-dvh flex-col bg-fondo text-texto">
+    // "relative" sirve para colocar la barrita de subrayar junto al texto.
+    <div className="relative flex min-h-dvh flex-col bg-fondo text-texto">
       {/* ── Barra superior ── */}
       <header className="sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-b-2 border-naranja bg-orilla px-3 py-2 sm:px-5">
         <Link
@@ -200,24 +228,34 @@ export function VistaLector({
               sobre="orilla"
             />
           </span>
+
+          <button
+            type="button"
+            onClick={() => notas.setPanelAbierto(true)}
+            aria-label={`Notas y subrayados (${notas.subrayados.length})`}
+            className={`${botonRedondo} relative text-naranja`}
+          >
+            <IconoNota />
+            {notas.subrayados.length > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-naranja px-1 text-[11px] font-bold text-negro">
+                {notas.subrayados.length}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
       {/* ── Texto ── */}
       <main className="flex-1 px-5 pb-40 pt-10 md:pt-14">
-        <article className="lectura mx-auto">
+        {/* data-texto-libro marca dónde se puede subrayar (Anotaciones.tsx) */}
+        <article data-texto-libro="" className="lectura mx-auto">
           <p className="mb-3 font-sans text-xs font-semibold uppercase tracking-widest text-acento">
             Parte {indice + 1} de {total}
           </p>
           <h1 className="mb-8 text-[1.5em] font-semibold leading-tight">
             {titulos[indice]}
           </h1>
-          {parrafos.map((parrafo, i) => (
-            // whitespace-pre-line respeta los saltos de línea de los versos
-            <p key={i} className="whitespace-pre-line">
-              {parrafo}
-            </p>
-          ))}
+          <ParrafosAnotados parrafos={parrafos} notas={notas} />
 
           <nav
             aria-label="Capítulos"
@@ -309,6 +347,16 @@ export function VistaLector({
           </span>
         )}
       </footer>
+
+      {/* ── Subrayados y notas ── */}
+      <BarraSeleccion notas={notas} />
+      <EditorSubrayado notas={notas} />
+      <PanelNotas
+        notas={notas}
+        titulos={titulos}
+        indice={indice}
+        rutaBase={rutaBase}
+      />
     </div>
   );
 }

@@ -74,6 +74,34 @@ export function IconoAtras(p: Props) {
   );
 }
 
+export function IconoNota(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16v4z" />
+      <path d="M13.5 6.5l4 4" />
+    </Base>
+  );
+}
+
+export function IconoBasura(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M4 7h16" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
+      <path d="M9 7V4h6v3" />
+    </Base>
+  );
+}
+
+export function IconoCerrar(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </Base>
+  );
+}
+
 export function IconoLibro(p: Props) {
   return (
     <Base {...p}>

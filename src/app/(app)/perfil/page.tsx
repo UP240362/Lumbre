@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { cerrarSesion } from "@/app/(acceso)/acciones";
+import { BotonCerrarSesion } from "@/components/BotonCerrarSesion";
 import { SelectorLuz } from "@/components/SelectorLuz";
 import { SelectorTamano } from "@/components/SelectorTamano";
 import { obtenerPerfil } from "@/lib/sesion";
@@ -73,15 +73,8 @@ export default function Perfil() {
         </p>
       </section>
 
-      {/* Este formulario llama a la acción del servidor que cierra la sesión */}
-      <form action={cerrarSesion}>
-        <button
-          type="submit"
-          className="min-h-11 rounded-xl border-2 border-borde px-5 font-semibold transition-colors hover:border-naranja"
-        >
-          Cerrar sesión
-        </button>
-      </form>
+      {/* Borra los libros guardados en el teléfono y cierra la sesión */}
+      <BotonCerrarSesion />
     </div>
   );
 }

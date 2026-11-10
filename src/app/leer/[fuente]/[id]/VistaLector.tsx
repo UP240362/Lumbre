@@ -18,6 +18,7 @@ import {
   useLuz,
   useTamanoLetra,
 } from "@/lib/preferencias";
+import { anotarAvance, guardarEnTelefono } from "@/lib/sinConexion";
 import type { Subrayado } from "@/lib/subrayados";
 import { guardarAvance } from "../../acciones";
 import {
@@ -29,6 +30,7 @@ import {
 } from "./Anotaciones";
 
 type Props = {
+  usuarioId: string; // para guardar el libro en el teléfono a nombre de quien lee
   libro: { id: string; fuente: string; titulo: string; autor: string };
   rutaBase: string; // dirección del libro, sin el número de capítulo
   indice: number; // capítulo actual, contando desde 0
@@ -54,6 +56,7 @@ function fraccionRecorrida(): number {
 }
 
 export function VistaLector({
+  usuarioId,
   libro,
   rutaBase,
   indice,
@@ -85,21 +88,38 @@ export function VistaLector({
   const [porcentaje, setPorcentaje] = useState(() =>
     porcentajeDe(fraccionInicial),
   );
-  const [estado, setEstado] = useState<"guardando" | "guardado" | "error">(
-    "guardando",
-  );
+  const [estado, setEstado] = useState<
+    "guardando" | "guardado" | "en-telefono" | "error"
+  >("guardando");
   // Último porcentaje calculado, para guardarlo al salir de la página.
   const pendiente = useRef<number | null>(null);
 
   useEffect(() => {
     let espera: ReturnType<typeof setTimeout> | undefined;
 
+    // Guarda el avance en la cuenta. Si se fue el internet, lo anota en el
+    // teléfono como pendiente; se sube solo cuando vuelva la conexión.
     async function guardar(valor: number) {
       pendiente.current = null;
       setEstado("guardando");
-      const { ok } = await guardarAvance(libro.fuente, libro.id, indice, valor);
-      setEstado(ok ? "guardado" : "error");
+      const enviado = await guardarAvance(libro.fuente, libro.id, indice, valor)
+        .then(({ ok }) => (ok ? "ok" : "error"))
+        .catch(() => "sin-red" as const);
+      await anotarAvance(libro.fuente, libro.id, indice, valor, enviado === "sin-red")
+        .catch(() => {});
+      setEstado(
+        enviado === "ok" ? "guardado" : enviado === "sin-red" ? "en-telefono" : "error",
+      );
     }
+
+    // Guarda el libro completo en el teléfono para leerlo sin internet.
+    void guardarEnTelefono({
+      dueno: usuarioId,
+      fuente: libro.fuente,
+      id: libro.id,
+      capitulo: indice,
+      porcentaje: porcentajeDe(fraccionInicial),
+    }).catch(() => {});
 
     function alDesplazar() {
       const valor = porcentajeDe(fraccionRecorrida());
@@ -132,7 +152,10 @@ export function VistaLector({
       clearTimeout(espera);
       // Si quedó un avance sin guardar al salir, se guarda ahora.
       if (pendiente.current !== null) {
-        void guardarAvance(libro.fuente, libro.id, indice, pendiente.current);
+        const valor = pendiente.current;
+        void guardarAvance(libro.fuente, libro.id, indice, valor).catch(() =>
+          anotarAvance(libro.fuente, libro.id, indice, valor, true),
+        );
       }
     };
     // Este efecto debe correr una sola vez por capítulo (el componente se
@@ -329,7 +352,9 @@ export function VistaLector({
                 ? "avance guardado"
                 : estado === "guardando"
                   ? "guardando…"
-                  : "sin guardar"}
+                  : estado === "en-telefono"
+                    ? "sin internet: guardado en el teléfono"
+                    : "sin guardar"}
             </span>
           </div>
         </div>

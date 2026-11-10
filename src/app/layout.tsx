@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Literata } from "next/font/google";
+import { ServicioSinConexion } from "@/components/ServicioSinConexion";
 import { SCRIPT_PREFERENCIAS } from "@/lib/luz";
 import "./globals.css";
 
@@ -20,6 +21,13 @@ export const metadata: Metadata = {
   title: "Lumbre",
   description:
     "Lee libros de dominio público, guarda tus favoritos y tu avance en cada libro.",
+  applicationName: "Lumbre",
+  // Para iPhone: al agregarla a la pantalla de inicio se abre como app.
+  appleWebApp: {
+    capable: true,
+    title: "Lumbre",
+    statusBarStyle: "black",
+  },
 };
 
 export const viewport: Viewport = {
@@ -39,7 +47,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_PREFERENCIAS }} />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <ServicioSinConexion />
+      </body>
     </html>
   );
 }

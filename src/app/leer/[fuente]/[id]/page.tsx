@@ -44,7 +44,7 @@ function Marco({ children }: { children: React.ReactNode }) {
 }
 
 async function Lector({ params, searchParams }: Parametros) {
-  await obtenerPerfil(); // exige sesión iniciada
+  const perfil = await obtenerPerfil(); // exige sesión iniciada
   const { fuente, id: idCrudo } = await params;
   const { c, s } = await searchParams;
   if (!esFuente(fuente)) notFound();
@@ -130,6 +130,7 @@ async function Lector({ params, searchParams }: Parametros) {
     <VistaLector
       // "key" hace que el lector empiece de cero al cambiar de capítulo.
       key={indice}
+      usuarioId={perfil.id}
       libro={{
         id: libro.id,
         fuente: libro.fuente,

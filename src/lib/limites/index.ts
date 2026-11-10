@@ -28,6 +28,8 @@ export const limites = {
   libros: crearLimitador({ maximo: 20, ventanaMs: HORA }),
   // Búsquedas en el catálogo (cada una consulta tres sitios).
   busqueda: crearLimitador({ maximo: 60, ventanaMs: MINUTO }),
+  // Libros completos que se guardan en el teléfono para leer sin internet.
+  descargas: crearLimitador({ maximo: 60, ventanaMs: HORA }),
 };
 
 export async function ipDelVisitante(): Promise<string> {

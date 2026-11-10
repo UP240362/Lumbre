@@ -56,6 +56,9 @@ export async function proxy(request: NextRequest) {
   const hayUsuario = Boolean(data?.claims);
 
   const ruta = request.nextUrl.pathname;
+  // La página sin conexión no tiene datos de nadie y el service worker la
+  // guarda; se deja pasar siempre, con o sin sesión.
+  if (ruta === "/sin-conexion") return respuesta;
   const esPublica = RUTAS_PUBLICAS.includes(ruta);
   const esDeAuth = ruta.startsWith("/auth/");
 
@@ -94,8 +97,10 @@ function redirigir(destino: URL, respuesta: NextResponse) {
 }
 
 export const config = {
-  // Corre en todas las rutas, menos archivos estáticos e imágenes.
+  // Corre en todas las rutas, menos archivos estáticos, imágenes y el
+  // manifiesto y el service worker de la app (el teléfono los lee aunque no
+  // hayas iniciado sesión).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

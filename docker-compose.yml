@@ -1,0 +1,40 @@
+# LUMBRE EN DOCKER
+# Dos servicios:
+#   - lumbre: el sitio (Next.js).
+#   - tunel:  conecta la laptop con Cloudflare para que lumbre.uk llegue
+#             al sitio sin abrir puertos en el módem.
+#
+# Los valores (${...}) se leen de .env.local. Por eso se usa así:
+#   npm run docker:local      → solo el sitio, en http://localhost:3001
+#   npm run docker:internet   → el sitio y el túnel (lumbre.uk)
+#   npm run docker:bajar      → apaga todo
+
+services:
+  lumbre:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+    image: lumbre:latest
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+    # Se vuelve a encender solo si se cae o al reiniciar Docker.
+    restart: unless-stopped
+    # Solo para probar en esta laptop. "127.0.0.1" hace que nadie más en
+    # tu red pueda entrar por aquí; desde internet se entra por el túnel.
+    ports:
+      - "127.0.0.1:3001:3000"
+
+  tunel:
+    image: cloudflare/cloudflared:2026.10.7
+    command: tunnel --no-autoupdate run
+    environment:
+      # El token del túnel se copia de Cloudflare y va en .env.local.
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    restart: unless-stopped
+    depends_on:
+      - lumbre
+    # Solo se enciende con el perfil "internet" (npm run docker:internet).
+    profiles: ["internet"]

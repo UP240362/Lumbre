@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "docker:local": "docker compose --env-file .env.local up -d --build",
+    "docker:internet": "docker compose --env-file .env.local --profile internet up -d --build",
+    "docker:bajar": "docker compose --env-file .env.local --profile internet down",
+    "docker:logs": "docker compose --env-file .env.local --profile internet logs -f --tail 50"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -7,7 +7,7 @@ import { rutaDeEntrada } from "@/lib/sesion";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
   const codigo = searchParams.get("code");
 
   // "next" dice a dónde ir después. Solo aceptamos rutas internas ("/algo"),
@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
   const esInterna =
     siguiente !== null &&
     siguiente.startsWith("/") &&
-    !siguiente.startsWith("//");
+    !siguiente.startsWith("//") &&
+    !siguiente.includes("\\");
 
   if (codigo) {
     const supabase = await crearClienteServidor();
@@ -24,9 +25,16 @@ export async function GET(request: NextRequest) {
     if (!error) {
       // Sin "next": cuenta recién confirmada → "Tus gustos" (o Inicio).
       const destino = esInterna ? siguiente : await rutaDeEntrada();
-      return NextResponse.redirect(`${origin}${destino}`);
+      return irA(destino);
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?aviso=enlace`);
+  return irA("/login?aviso=enlace");
+}
+
+// Redirige con una ruta relativa ("/gustos"), y el navegador la completa con
+// el sitio donde está (https://lumbre.uk). No se usa request.nextUrl.origin
+// porque dentro de Docker vale "0.0.0.0:3000", que no abre en el navegador.
+function irA(ruta: string) {
+  return new NextResponse(null, { status: 307, headers: { Location: ruta } });
 }

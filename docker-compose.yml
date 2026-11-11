@@ -27,9 +27,13 @@ services:
     # lo reinicia solo.
     mem_limit: 1g
     cpus: 1.5
-    # Conteo de cuentas creadas por IP; sobrevive a los reinicios.
     volumes:
+      # Conteo de cuentas creadas por IP; sobrevive a los reinicios.
       - datos:/app/datos
+      # Biblioteca Lumbre: la carpeta de libros de tu laptop. ":ro" = solo
+      # lectura: el sitio puede leer los libros, pero nunca cambiarlos ni
+      # borrarlos. Para usar otra carpeta, pon LUMBRE_BIBLIOTECA en .env.local.
+      - ${LUMBRE_BIBLIOTECA:-C:/Lumbre/libros}:/app/biblioteca:ro
     # Solo para probar en esta laptop. "127.0.0.1" hace que nadie más en
     # tu red pueda entrar por aquí; desde internet se entra por el túnel.
     ports:

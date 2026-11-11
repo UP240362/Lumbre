@@ -2,9 +2,19 @@ import { Suspense } from "react";
 import { Buscador } from "@/components/Buscador";
 import { RejillaLibros } from "@/components/TarjetaLibro";
 import { obtenerClavesFavoritas } from "@/lib/favoritos";
-import { buscarLibros } from "@/lib/fuentes";
+import { buscarLibros, type Libro } from "@/lib/fuentes";
+import { librosRecientes } from "@/lib/fuentes/biblioteca";
 
 export const metadata = { title: "Explorar · Lumbre" };
+
+// Datos que necesita cada tarjeta de libro.
+const aTarjeta = (libro: Libro) => ({
+  id: libro.id,
+  fuente: libro.fuente,
+  titulo: libro.titulo,
+  autor: libro.autores.join(", "),
+  idioma: libro.idiomas[0],
+});
 
 // Lee ?q=... de la dirección, busca en todas las fuentes y pinta el
 // buscador (con lo que se escribió) y los resultados.
@@ -16,14 +26,27 @@ async function Resultados({
   const { q } = await searchParams;
   const consulta = (typeof q === "string" ? q : "").trim().slice(0, 80);
 
+  // Sin búsqueda: se muestran los libros de la Biblioteca Lumbre.
   if (consulta.length < 2) {
+    const [recientes, favoritos] = await Promise.all([
+      librosRecientes().catch(() => []),
+      obtenerClavesFavoritas(),
+    ]);
     return (
       <>
         <Buscador />
         <p className="text-tenue">
-          Escribe un título o un autor para buscar en Project Gutenberg,
-          Elejandría e Internet Archive.
+          Escribe un título o un autor para buscar en la Biblioteca Lumbre,
+          Project Gutenberg, Elejandría e Internet Archive.
         </p>
+        {recientes.length > 0 && (
+          <section aria-labelledby="biblioteca" className="flex flex-col gap-4">
+            <h2 id="biblioteca" className="font-serif text-2xl font-semibold">
+              En la Biblioteca Lumbre
+            </h2>
+            <RejillaLibros favoritos={favoritos} libros={recientes.map(aTarjeta)} />
+          </section>
+        )}
       </>
     );
   }
@@ -58,13 +81,7 @@ async function Resultados({
           </p>
           <RejillaLibros
             favoritos={favoritos}
-            libros={libros.map((libro) => ({
-              id: libro.id,
-              fuente: libro.fuente,
-              titulo: libro.titulo,
-              autor: libro.autores.join(", "),
-              idioma: libro.idiomas[0],
-            }))}
+            libros={libros.map(aTarjeta)}
           />
         </>
       );

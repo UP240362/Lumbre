@@ -8,10 +8,17 @@ import type { Capitulo } from "../lectura/tipos";
 // Las fuentes que existen. Para añadir otra (Standard Ebooks, Open Library,
 // Wikisource…) se agrega su nombre aquí y en NOMBRES_FUENTE.
 // "propio" son los libros que cada usuario agrega (enlaces y archivos).
-export type IdFuente = "gutenberg" | "elejandria" | "archive" | "propio";
+// "biblioteca" es la carpeta de libros del dueño del sitio (biblioteca.ts).
+export type IdFuente =
+  | "biblioteca"
+  | "gutenberg"
+  | "elejandria"
+  | "archive"
+  | "propio";
 
 // Nombre de cada fuente para mostrarlo en pantalla.
 export const NOMBRES_FUENTE: Record<IdFuente, string> = {
+  biblioteca: "Biblioteca Lumbre",
   gutenberg: "Gutenberg",
   elejandria: "Elejandría",
   archive: "Internet Archive",

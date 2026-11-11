@@ -10,6 +10,7 @@ import { repartir } from "../lectura/repartir";
 import type { Capitulo } from "../lectura/tipos";
 import { simplificar } from "../texto";
 import { archive } from "./archive";
+import { biblioteca } from "./biblioteca";
 import { elejandria } from "./elejandria";
 import { gutenberg } from "./gutenberg";
 import { propio } from "./propio";
@@ -19,6 +20,7 @@ export type { IdFuente, Libro } from "./tipos";
 
 // El orden importa: así se ordenan los resultados cuando hay empate.
 const FUENTES: Record<IdFuente, FuenteLibros> = {
+  biblioteca,
   gutenberg,
   elejandria,
   archive,

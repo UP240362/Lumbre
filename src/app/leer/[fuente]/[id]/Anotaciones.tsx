@@ -15,7 +15,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { IconoBasura, IconoCerrar, IconoNota } from "@/components/Iconos";
+import { CompartirCita } from "@/components/CompartirCita";
+import { IconoBasura, IconoCerrar, IconoCompartir, IconoNota } from "@/components/Iconos";
 import {
   COLORES,
   MAX_NOTA,
@@ -491,12 +492,21 @@ export function PanelNotas({
   titulos,
   indice,
   rutaBase,
+  libro,
 }: {
   notas: Anotaciones;
   titulos: string[];
   indice: number;
   rutaBase: string;
+  libro: { titulo: string; autor: string }; // para la tarjeta al compartir
 }) {
+  // El subrayado que se está compartiendo (abre la pantalla de compartir).
+  const [compartiendo, setCompartiendo] = useState<{
+    texto: string;
+    titulo: string;
+    autor: string;
+  } | null>(null);
+
   if (!notas.panelAbierto) return null;
 
   const ordenados = [...notas.subrayados].sort(
@@ -505,8 +515,9 @@ export function PanelNotas({
       a.inicio_parrafo - b.inicio_parrafo ||
       a.inicio_offset - b.inicio_offset,
   );
+  // La parte de arriba de cada tarjeta lleva al subrayado en el libro.
   const claseTarjeta =
-    "block w-full rounded-xl border border-orilla-borde p-4 pr-12 text-left transition-colors hover:border-naranja";
+    "block w-full rounded-t-xl p-4 pb-3 text-left transition-colors hover:bg-orilla-superficie";
 
   return (
     // Fondo oscuro: tocarlo cierra el panel.
@@ -545,8 +556,9 @@ export function PanelNotas({
               {ordenados.map((s) => {
                 const contenido = (
                   <>
-                    <span className="line-clamp-1 text-xs uppercase tracking-widest text-orilla-tenue">
+                    <span className="line-clamp-1 text-xs font-semibold uppercase tracking-widest text-orilla-tenue">
                       {titulos[s.capitulo] ?? `Parte ${s.capitulo + 1}`}
+                      {s.nota && " · con nota"}
                     </span>
                     <span
                       className="mt-2 line-clamp-4 block whitespace-pre-line border-l-4 pl-3 font-serif"
@@ -555,15 +567,14 @@ export function PanelNotas({
                       {s.texto}
                     </span>
                     {s.nota && (
-                      <span className="mt-3 flex gap-2 whitespace-pre-line text-sm">
-                        <IconoNota className="mt-0.5 size-4 shrink-0 text-naranja" />
-                        {s.nota}
+                      <span className="mt-3 block whitespace-pre-line text-sm text-orilla-tenue">
+                        Mi nota: {s.nota}
                       </span>
                     )}
                   </>
                 );
                 return (
-                  <li key={s.id} className="relative">
+                  <li key={s.id} className="rounded-xl border border-orilla-borde">
                     {s.capitulo === indice ? (
                       <button type="button" onClick={() => notas.irA(s.id)} className={claseTarjeta}>
                         {contenido}
@@ -573,18 +584,30 @@ export function PanelNotas({
                         {contenido}
                       </Link>
                     )}
-                    {/* Va aparte (no dentro de la tarjeta) porque un botón
+                    {/* Van aparte (no dentro de la tarjeta) porque un botón
                         no puede ir dentro de otro botón o enlace. */}
-                    <button
-                      type="button"
-                      onClick={() => notas.eliminarConConfirmacion(s)}
-                      disabled={notas.guardando}
-                      aria-label={s.nota ? "Eliminar subrayado y nota" : "Eliminar subrayado"}
-                      title="Eliminar"
-                      className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full text-orilla-tenue transition-colors hover:bg-orilla-superficie hover:text-naranja disabled:opacity-50"
-                    >
-                      <IconoBasura className="size-4" />
-                    </button>
+                    <div className="mx-4 flex items-center justify-between gap-3 border-t border-orilla-borde py-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCompartiendo({ texto: s.texto, titulo: libro.titulo, autor: libro.autor })
+                        }
+                        className="flex min-h-10 items-center gap-2 rounded-full bg-naranja px-4 text-sm font-semibold text-negro transition-transform active:scale-95"
+                      >
+                        <IconoCompartir className="size-4" />
+                        Compartir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => notas.eliminarConConfirmacion(s)}
+                        disabled={notas.guardando}
+                        aria-label={s.nota ? "Eliminar subrayado y nota" : "Eliminar subrayado"}
+                        title="Eliminar"
+                        className="flex size-10 items-center justify-center rounded-full border border-orilla-borde text-orilla-tenue transition-colors hover:border-naranja hover:text-naranja disabled:opacity-50"
+                      >
+                        <IconoBasura className="size-4" />
+                      </button>
+                    </div>
                   </li>
                 );
               })}
@@ -592,6 +615,10 @@ export function PanelNotas({
           )}
         </div>
       </aside>
+
+      {compartiendo && (
+        <CompartirCita cita={compartiendo} alCerrar={() => setCompartiendo(null)} />
+      )}
     </div>
   );
 }

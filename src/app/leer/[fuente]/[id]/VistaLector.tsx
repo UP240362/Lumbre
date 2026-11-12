@@ -421,6 +421,7 @@ export function VistaLector({
         titulos={titulos}
         indice={indice}
         rutaBase={rutaBase}
+        libro={libro}
       />
     </div>
   );

@@ -102,6 +102,16 @@ export function IconoCerrar(p: Props) {
   );
 }
 
+export function IconoCompartir(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M12 15V4" />
+      <path d="M8 8l4-4 4 4" />
+      <path d="M5 13v6h14v-6" />
+    </Base>
+  );
+}
+
 export function IconoAudifonos(p: Props) {
   return (
     <Base {...p}>

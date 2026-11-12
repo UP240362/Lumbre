@@ -6,11 +6,13 @@ import { IconoPerfil } from "./Iconos";
 export function FotoPerfil({
   version,
   nombre,
+  de,
   className = "size-10",
   texto = "text-base",
 }: {
   version: number | null;
   nombre: string | null;
+  de?: string; // apodo de OTRO lector (sin esto, es la foto propia)
   className?: string; // tamaño del círculo
   texto?: string; // tamaño de la inicial
 }) {
@@ -18,7 +20,7 @@ export function FotoPerfil({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- foto privada servida por /api/foto
       <img
-        src={`/api/foto?v=${version}`}
+        src={de ? `/api/foto/${encodeURIComponent(de)}?v=${version}` : `/api/foto?v=${version}`}
         alt=""
         className={`${className} shrink-0 rounded-full object-cover ring-2 ring-naranja`}
       />

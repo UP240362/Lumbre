@@ -65,7 +65,8 @@ export async function guardarResena(
       book_id: libro.id,
       titulo: libro.titulo.slice(0, 300),
       autor: libro.autores.join(", ").slice(0, 300) || null,
-      nombre: perfil.nombre?.trim().slice(0, 80) || null,
+      // Se muestra el apodo; el nombre real nunca se enseña a otros.
+      nombre: perfil.apodo,
       calificacion,
       texto: limpio || null,
       actualizado_en: ahora,

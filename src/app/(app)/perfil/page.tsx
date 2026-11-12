@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { BotonCerrarSesion } from "@/components/BotonCerrarSesion";
 import { EditorFoto } from "@/components/EditorFoto";
+import { EditorApodo, EditorPrivacidad } from "@/components/EditorSocial";
+import { MisResenas } from "@/components/MisResenas";
 import { SelectorLuz } from "@/components/SelectorLuz";
 import { SelectorTamano } from "@/components/SelectorTamano";
 import { TiempoDeLectura } from "@/components/TiempoDeLectura";
@@ -25,6 +27,25 @@ async function DatosDeCuenta() {
   );
 }
 
+// Apodo y privacidad: lo que ven los demás lectores.
+async function PerfilPublico() {
+  const perfil = await obtenerPerfil();
+  return (
+    <div className="flex flex-col gap-8">
+      <EditorApodo apodo={perfil.apodo} />
+      <EditorPrivacidad
+        inicial={{
+          visibilidad: perfil.visibilidad,
+          mostrar_tiempo: perfil.mostrar_tiempo,
+          mostrar_favoritos: perfil.mostrar_favoritos,
+          mostrar_resenas: perfil.mostrar_resenas,
+          mostrar_gustos: perfil.mostrar_gustos,
+        }}
+      />
+    </div>
+  );
+}
+
 export default function Perfil() {
   return (
     <div className="flex flex-col gap-10">
@@ -39,6 +60,24 @@ export default function Perfil() {
         <div className="rounded-2xl border border-borde bg-superficie p-5">
           <Suspense fallback={<p className="text-tenue">Cargando…</p>}>
             <DatosDeCuenta />
+          </Suspense>
+        </div>
+      </section>
+
+      <section aria-labelledby="publico">
+        <h2 id="publico" className="mb-1 text-xl font-semibold">
+          Apodo y privacidad
+        </h2>
+        <p className="mb-4 text-tenue">
+          Con tu apodo, otros lectores te pueden buscar y agregarte como amigo en{" "}
+          <Link href="/amigos" className="text-acento underline underline-offset-4">
+            Amigos
+          </Link>
+          .
+        </p>
+        <div className="rounded-2xl border border-borde bg-superficie p-5">
+          <Suspense fallback={<p className="text-tenue">Cargando…</p>}>
+            <PerfilPublico />
           </Suspense>
         </div>
       </section>
@@ -59,6 +98,15 @@ export default function Perfil() {
           }
         >
           <TiempoDeLectura />
+        </Suspense>
+      </section>
+
+      <section aria-labelledby="mis-resenas">
+        <h2 id="mis-resenas" className="mb-4 text-xl font-semibold">
+          Mis reseñas
+        </h2>
+        <Suspense fallback={<p className="text-tenue">Cargando…</p>}>
+          <MisResenas />
         </Suspense>
       </section>
 

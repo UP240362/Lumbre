@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   BarraInferior,
+  BarraInferiorSinRuta,
   BarraLateral,
+  BarraLateralSinRuta,
   BarraSuperiorMovil,
 } from "@/components/Navegacion";
 import { FotoPerfil } from "@/components/FotoPerfil";
@@ -58,7 +60,11 @@ export default function LayoutApp({ children }: LayoutProps<"/">) {
         <PreferenciasDelPerfil />
       </Suspense>
 
-      <BarraLateral foto={foto("size-7")} />
+      {/* Suspense: en páginas con dirección variable (/lectores/[apodo])
+          la barra espera a conocer la dirección para marcar el enlace. */}
+      <Suspense fallback={<BarraLateralSinRuta foto={foto("size-7")} />}>
+        <BarraLateral foto={foto("size-7")} />
+      </Suspense>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <BarraSuperiorMovil />
@@ -70,7 +76,9 @@ export default function LayoutApp({ children }: LayoutProps<"/">) {
         </main>
       </div>
 
-      <BarraInferior foto={foto("size-6")} />
+      <Suspense fallback={<BarraInferiorSinRuta foto={foto("size-6")} />}>
+        <BarraInferior foto={foto("size-6")} />
+      </Suspense>
     </div>
   );
 }

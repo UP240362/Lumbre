@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
+  IconoAmigos,
   IconoCorazon,
   IconoExplorar,
   IconoInicio,
@@ -21,20 +22,32 @@ const ENLACES = [
   { href: "/explorar", nombre: "Explorar", Icono: IconoExplorar },
   { href: "/favoritos", nombre: "Favoritos", Icono: IconoCorazon },
   { href: "/mis-libros", nombre: "Mis libros", Icono: IconoLibro },
+  { href: "/amigos", nombre: "Amigos", Icono: IconoAmigos },
   { href: "/perfil", nombre: "Mi perfil", Icono: IconoPerfil },
 ];
 
-// Devuelve una función que dice si un enlace es la página actual.
-function useEsActivo() {
-  const ruta = usePathname();
-  return (href: string) =>
-    href === "/" ? ruta === "/" : ruta === href || ruta.startsWith(`${href}/`);
+// ¿El enlace es la página actual? Sin ruta (mientras carga) ninguno lo es.
+function esActivoEn(ruta: string | null, href: string) {
+  if (!ruta) return false;
+  return href === "/" ? ruta === "/" : ruta === href || ruta.startsWith(`${href}/`);
 }
 
 // "foto": el círculo con la foto de perfil. Lo arma el servidor (necesita
 // saber quién inició sesión) y se pasa ya listo.
+// "ruta": la dirección actual. Cada barra tiene dos versiones: la normal
+// (lee la dirección) y "SinRuta", que el layout muestra mientras tanto en
+// páginas con dirección variable, como /lectores/[apodo].
+type PropsBarra = { foto?: ReactNode; ruta: string | null };
+
 export function BarraLateral({ foto }: { foto?: ReactNode }) {
-  const esActivo = useEsActivo();
+  return <Lateral foto={foto} ruta={usePathname()} />;
+}
+export function BarraLateralSinRuta({ foto }: { foto?: ReactNode }) {
+  return <Lateral foto={foto} ruta={null} />;
+}
+
+function Lateral({ foto, ruta }: PropsBarra) {
+  const esActivo = (href: string) => esActivoEn(ruta, href);
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto border-r-4 border-naranja bg-orilla p-6 md:flex">
@@ -82,7 +95,14 @@ export function BarraSuperiorMovil() {
 }
 
 export function BarraInferior({ foto }: { foto?: ReactNode }) {
-  const esActivo = useEsActivo();
+  return <Inferior foto={foto} ruta={usePathname()} />;
+}
+export function BarraInferiorSinRuta({ foto }: { foto?: ReactNode }) {
+  return <Inferior foto={foto} ruta={null} />;
+}
+
+function Inferior({ foto, ruta }: PropsBarra) {
+  const esActivo = (href: string) => esActivoEn(ruta, href);
 
   return (
     <nav
@@ -96,7 +116,7 @@ export function BarraInferior({ foto }: { foto?: ReactNode }) {
             key={href}
             href={href}
             aria-current={activo ? "page" : undefined}
-            className={`flex h-16 flex-1 flex-col items-center justify-center gap-1 text-xs font-medium ${
+            className={`flex h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium leading-tight ${
               activo ? "text-naranja" : "text-orilla-tenue"
             }`}
           >

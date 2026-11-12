@@ -57,6 +57,17 @@ export function IconoCorazon({
   );
 }
 
+export function IconoAmigos(p: Props) {
+  return (
+    <Base {...p}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.500 20c1-3.500 3.500-5.500 6.500-5.500s5.500 2 6.500 5.500" />
+      <circle cx="17" cy="9" r="2.800" />
+      <path d="M16.500 14c2.600 0 4.300 1.600 5 4.500" />
+    </Base>
+  );
+}
+
 export function IconoPerfil(p: Props) {
   return (
     <Base {...p}>

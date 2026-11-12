@@ -15,7 +15,16 @@ export type Perfil = {
   tamano_letra: number;
   gustos_completados: boolean;
   foto_version: number | null; // null = sin foto de perfil
+  apodo: string | null; // nombre público (el nombre real nunca se muestra a otros)
+  visibilidad: Visibilidad;
+  mostrar_tiempo: boolean;
+  mostrar_favoritos: boolean;
+  mostrar_resenas: boolean;
+  mostrar_gustos: boolean;
 };
+
+// Quién puede ver el perfil: cualquier lector, solo amigos o nadie.
+export type Visibilidad = "publico" | "amigos" | "privado";
 
 // Devuelve el usuario con sesión iniciada, o null si no hay.
 export const obtenerUsuario = cache(async () => {
@@ -47,7 +56,9 @@ export const obtenerPerfil = cache(async (): Promise<Perfil> => {
   const supabase = await crearClienteServidor();
   const { data } = await supabase
     .from("profiles")
-    .select("nombre, luz_preferida, tamano_letra, gustos_completados, foto_version")
+    .select(
+      "nombre, luz_preferida, tamano_letra, gustos_completados, foto_version, apodo, visibilidad, mostrar_tiempo, mostrar_favoritos, mostrar_resenas, mostrar_gustos",
+    )
     .eq("id", usuario.id)
     .maybeSingle();
 
@@ -59,5 +70,11 @@ export const obtenerPerfil = cache(async (): Promise<Perfil> => {
     tamano_letra: data?.tamano_letra ?? 19,
     gustos_completados: data?.gustos_completados ?? false,
     foto_version: data?.foto_version ?? null,
+    apodo: data?.apodo ?? null,
+    visibilidad: data?.visibilidad ?? "amigos",
+    mostrar_tiempo: data?.mostrar_tiempo ?? true,
+    mostrar_favoritos: data?.mostrar_favoritos ?? true,
+    mostrar_resenas: data?.mostrar_resenas ?? true,
+    mostrar_gustos: data?.mostrar_gustos ?? true,
   };
 });

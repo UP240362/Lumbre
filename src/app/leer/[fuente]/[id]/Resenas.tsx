@@ -6,6 +6,7 @@
 //   - PanelResenas: panel lateral con el formulario propio (estrellas y
 //     reseña breve) y las reseñas de los demás.
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Estrellas } from "@/components/Estrellas";
 import { IconoCerrar } from "@/components/Iconos";
@@ -194,7 +195,16 @@ export function PanelResenas({ resenas, titulo }: { resenas: Resenas; titulo: st
                 {resenas.datos.otras.map((r, i) => (
                   <li key={i} className="rounded-xl border border-orilla-borde p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-semibold">{r.nombre}</span>
+                      {r.apodo ? (
+                        <Link
+                          href={`/lectores/${encodeURIComponent(r.apodo)}`}
+                          className="font-semibold hover:text-naranja hover:underline"
+                        >
+                          @{r.nombre}
+                        </Link>
+                      ) : (
+                        <span className="font-semibold">{r.nombre}</span>
+                      )}
                       <Estrellas valor={r.calificacion} />
                     </div>
                     <p className="mt-0.5 text-xs text-orilla-tenue">
@@ -278,7 +288,7 @@ function FormularioResena({ resenas }: { resenas: Resenas }) {
         </span>
       </label>
       <p className="text-xs text-orilla-tenue">
-        Tu reseña la verán los demás lectores de Lumbre con tu nombre.
+        Tu reseña la verán los demás lectores de Lumbre con tu apodo.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">

@@ -186,6 +186,10 @@ export async function subirPendientes(
 // Al cerrar sesión: borra los libros guardados y la copia de la página
 // sin conexión, para que nadie más los vea en este teléfono.
 export async function borrarTodoSinConexion() {
+  // El tiempo de lectura que no se alcanzó a mandar también es de esta cuenta.
+  try {
+    localStorage.removeItem("lumbre-tiempo-pendiente");
+  } catch {}
   try {
     if (typeof indexedDB !== "undefined") {
       await usar("readwrite", (a) => {

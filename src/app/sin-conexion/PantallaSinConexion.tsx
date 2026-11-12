@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconoAtras } from "@/components/Iconos";
 import { BotonEscuchar, PanelVoz, useLecturaEnVoz } from "@/components/LecturaEnVoz";
+import { useTiempoLectura } from "@/lib/tiempoLectura";
 import { LUCES, TAMANO_MAX, TAMANO_MIN, TAMANO_PASO } from "@/lib/luz";
 import {
   guardarLuz,
@@ -265,6 +266,14 @@ function CapituloLocal({
     titulo: libro.titulos[indice] ?? "",
     haySiguiente,
     irAlSiguiente: () => irA(indice + 1),
+  });
+
+  // El tiempo leído sin internet se guarda y se manda al volver la red.
+  useTiempoLectura({
+    dueno: libro.dueno,
+    fuente: libro.fuente,
+    id: libro.id,
+    escuchando: voz.leyendo,
   });
 
   return (

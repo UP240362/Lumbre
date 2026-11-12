@@ -30,6 +30,10 @@ export const limites = {
   busqueda: crearLimitador({ maximo: 60, ventanaMs: MINUTO }),
   // Libros completos que se guardan en el teléfono para leer sin internet.
   descargas: crearLimitador({ maximo: 60, ventanaMs: HORA }),
+  // Reseñas guardadas (o editadas).
+  resenas: crearLimitador({ maximo: 30, ventanaMs: HORA }),
+  // Envíos del tiempo de lectura (el lector manda uno por minuto).
+  tiempo: crearLimitador({ maximo: 300, ventanaMs: HORA }),
 };
 
 export async function ipDelVisitante(): Promise<string> {

@@ -6,6 +6,7 @@ import { claveLibro, obtenerClavesFavoritas } from "@/lib/favoritos";
 import { esFuente, leerLibro, obtenerLibro } from "@/lib/fuentes";
 import { NOMBRES_FUENTE } from "@/lib/fuentes/tipos";
 import { largoDe } from "@/lib/lectura/repartir";
+import { resenasDelLibro, sePuedeResenar } from "@/lib/resenas";
 import { obtenerPerfil } from "@/lib/sesion";
 import { COLUMNAS_SUBRAYADO, type Subrayado } from "@/lib/subrayados";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
@@ -124,7 +125,12 @@ async function Lector({ params, searchParams }: Parametros) {
     }
   }
 
-  const favoritos = await obtenerClavesFavoritas();
+  const [favoritos, resenas] = await Promise.all([
+    obtenerClavesFavoritas(),
+    sePuedeResenar(libro.fuente)
+      ? resenasDelLibro(libro.fuente, libro.id, perfil.id)
+      : Promise.resolve(null),
+  ]);
 
   return (
     <VistaLector
@@ -149,6 +155,7 @@ async function Lector({ params, searchParams }: Parametros) {
       esFavorito={favoritos.has(claveLibro(libro))}
       subrayados={subrayados}
       subrayadoInicial={objetivo?.capitulo === indice ? objetivo.id : null}
+      resenas={resenas}
     />
   );
 }

@@ -10,6 +10,7 @@
 import { useEffect } from "react";
 import { guardarAvance } from "@/app/leer/acciones";
 import { subirPendientes } from "@/lib/sinConexion";
+import { enviarTiempoPendiente } from "@/lib/tiempoLectura";
 
 export function ServicioSinConexion() {
   useEffect(() => {
@@ -36,6 +37,7 @@ export function ServicioSinConexion() {
     const subir = () => {
       if (navigator.onLine && conSesion()) {
         void subirPendientes(guardarAvance).catch(() => {});
+        void enviarTiempoPendiente();
       }
     };
     subir();

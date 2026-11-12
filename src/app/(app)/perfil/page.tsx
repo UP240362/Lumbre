@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { BotonCerrarSesion } from "@/components/BotonCerrarSesion";
 import { SelectorLuz } from "@/components/SelectorLuz";
 import { SelectorTamano } from "@/components/SelectorTamano";
+import { TiempoDeLectura } from "@/components/TiempoDeLectura";
 import { obtenerPerfil } from "@/lib/sesion";
 
 export const metadata = { title: "Mi perfil · Lumbre" };
@@ -36,6 +37,25 @@ export default function Perfil() {
             <DatosDeCuenta />
           </Suspense>
         </div>
+      </section>
+
+      <section aria-labelledby="tiempo">
+        <h2 id="tiempo" className="mb-1 text-xl font-semibold">
+          Tiempo de lectura
+        </h2>
+        <p className="mb-4 text-tenue">
+          Solo cuenta mientras tienes un libro abierto y estás leyendo o
+          escuchando.
+        </p>
+        <Suspense
+          fallback={
+            <div className="rounded-2xl border border-borde bg-superficie p-5 text-tenue">
+              Cargando…
+            </div>
+          }
+        >
+          <TiempoDeLectura />
+        </Suspense>
       </section>
 
       <section aria-labelledby="gustos">

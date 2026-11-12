@@ -20,8 +20,11 @@ import {
   useTamanoLetra,
 } from "@/lib/preferencias";
 import { anotarAvance, guardarEnTelefono } from "@/lib/sinConexion";
+import { useTiempoLectura } from "@/lib/tiempoLectura";
 import type { Subrayado } from "@/lib/subrayados";
 import { guardarAvance } from "../../acciones";
+import { AvisoResenas, PanelResenas, useResenas } from "./Resenas";
+import type { DatosResenas } from "@/lib/resenas";
 import {
   BarraSeleccion,
   EditorSubrayado,
@@ -47,6 +50,7 @@ type Props = {
   esFavorito: boolean;
   subrayados: Subrayado[]; // de todo el libro
   subrayadoInicial: string | null; // al abrir, llevar la vista a este
+  resenas: DatosResenas | null; // null en libros que no se reseñan (los propios)
 };
 
 // Qué tanto de la página se ha recorrido: 0 arriba, 1 hasta abajo.
@@ -70,6 +74,7 @@ export function VistaLector({
   esFavorito,
   subrayados,
   subrayadoInicial,
+  resenas: resenasIniciales,
 }: Props) {
   const router = useRouter();
   const luz = useLuz();
@@ -86,6 +91,11 @@ export function VistaLector({
   const hayAnterior = indice > 0;
   const haySiguiente = indice < total - 1;
 
+  const resenas = useResenas(
+    libro,
+    resenasIniciales ?? { promedio: 0, cantidad: 0, mia: null, otras: [] },
+  );
+
   // Lectura en voz alta: al terminar el capítulo pasa solo al siguiente.
   const voz = useLecturaEnVoz({
     parrafos,
@@ -93,6 +103,14 @@ export function VistaLector({
     idioma: libro.idioma,
     haySiguiente,
     irAlSiguiente: () => router.push(rutaCapitulo(indice + 1)),
+  });
+
+  // Cuenta el tiempo de lectura (solo mientras de verdad se lee o escucha).
+  useTiempoLectura({
+    dueno: usuarioId,
+    fuente: libro.fuente,
+    id: libro.id,
+    escuchando: voz.leyendo,
   });
 
   const porcentajeDe = (fraccion: number) =>
@@ -311,6 +329,10 @@ export function VistaLector({
               <span className="text-tenue">Fin del libro</span>
             )}
           </nav>
+
+          {resenasIniciales && (
+            <AvisoResenas resenas={resenas} titulo={libro.titulo} esUltimo={!haySiguiente} />
+          )}
         </article>
       </main>
 
@@ -384,6 +406,9 @@ export function VistaLector({
           </span>
         )}
       </footer>
+
+      {/* ── Calificaciones y reseñas ── */}
+      <PanelResenas resenas={resenas} titulo={libro.titulo} />
 
       {/* ── Lectura en voz alta ── */}
       <PanelVoz voz={voz} idioma={libro.idioma} />

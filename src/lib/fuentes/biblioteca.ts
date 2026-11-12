@@ -170,11 +170,13 @@ async function construirIndice(): Promise<Indice> {
       idiomas: [(texto(corregido.idioma) ?? texto(datos.idioma) ?? "es").slice(0, 2).toLowerCase()],
     });
   }
-  return { hecho: Date.now(), libros };
+  return { hecho: performance.now(), libros };
 }
 
 async function obtenerIndice(): Promise<Indice> {
-  if (indice && Date.now() - indice.hecho < REVISAR_CADA_MS) return indice;
+  // performance.now() y no Date.now(): Next 16 no deja leer la hora al
+  // preparar páginas, y para medir el minuto basta este reloj.
+  if (indice && performance.now() - indice.hecho < REVISAR_CADA_MS) return indice;
   enCurso ??= construirIndice()
     .then((nuevo) => (indice = nuevo))
     .finally(() => (enCurso = null));

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BotonFavorito } from "@/components/BotonFavorito";
+import { BotonEscuchar, PanelVoz, useLecturaEnVoz } from "@/components/LecturaEnVoz";
 import { IconoAtras, IconoNota } from "@/components/Iconos";
 import { LUCES, TAMANO_MAX, TAMANO_MIN, TAMANO_PASO } from "@/lib/luz";
 import {
@@ -31,7 +32,7 @@ import {
 
 type Props = {
   usuarioId: string; // para guardar el libro en el teléfono a nombre de quien lee
-  libro: { id: string; fuente: string; titulo: string; autor: string };
+  libro: { id: string; fuente: string; titulo: string; autor: string; idioma?: string };
   rutaBase: string; // dirección del libro, sin el número de capítulo
   indice: number; // capítulo actual, contando desde 0
   titulos: string[]; // títulos de todos los capítulos
@@ -78,6 +79,20 @@ export function VistaLector({
     capitulo: indice,
     parrafos,
     iniciales: subrayados,
+  });
+
+  const total = titulos.length;
+  const rutaCapitulo = (n: number) => `${rutaBase}?c=${n + 1}`;
+  const hayAnterior = indice > 0;
+  const haySiguiente = indice < total - 1;
+
+  // Lectura en voz alta: al terminar el capítulo pasa solo al siguiente.
+  const voz = useLecturaEnVoz({
+    parrafos,
+    titulo: titulos[indice] ?? "",
+    idioma: libro.idioma,
+    haySiguiente,
+    irAlSiguiente: () => router.push(rutaCapitulo(indice + 1)),
   });
 
   const porcentajeDe = (fraccion: number) =>
@@ -163,13 +178,8 @@ export function VistaLector({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const total = titulos.length;
-  const rutaCapitulo = (n: number) => `${rutaBase}?c=${n + 1}`;
-  const hayAnterior = indice > 0;
-  const haySiguiente = indice < total - 1;
-
   const botonRedondo =
-    "flex size-10 shrink-0 items-center justify-center rounded-full border border-orilla-borde text-orilla-texto transition-colors hover:border-naranja disabled:opacity-40";
+    "flex size-9 shrink-0 items-center justify-center rounded-full border border-orilla-borde text-orilla-texto transition-colors hover:border-naranja disabled:opacity-40 sm:size-10";
 
   return (
     // "relative" sirve para colocar la barrita de subrayar junto al texto.
@@ -194,8 +204,8 @@ export function VistaLector({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div role="radiogroup" aria-label="Luz de lectura" className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <div role="radiogroup" aria-label="Luz de lectura" className="flex gap-1.5 sm:gap-2">
             {LUCES.map((opcion) => {
               const activa = opcion.id === luz;
               return (
@@ -206,7 +216,7 @@ export function VistaLector({
                   aria-checked={activa}
                   aria-label={`Luz ${opcion.nombre.toLowerCase()}`}
                   onClick={() => guardarLuz(opcion.id)}
-                  className={`flex h-10 items-center gap-2 rounded-full border-2 px-2.5 text-sm font-medium text-orilla-texto transition-colors md:px-4 ${
+                  className={`flex h-9 items-center gap-2 rounded-full border-2 px-2 text-sm sm:h-10 sm:px-2.5 font-medium text-orilla-texto transition-colors md:px-4 ${
                     activa
                       ? "border-naranja"
                       : "border-orilla-borde hover:border-naranja/60"
@@ -228,7 +238,7 @@ export function VistaLector({
             aria-label="Letra más chica"
             disabled={tamano <= TAMANO_MIN}
             onClick={() => guardarTamano(tamano - TAMANO_PASO)}
-            className={`${botonRedondo} ml-2 font-serif text-sm`}
+            className={`${botonRedondo} ml-1 font-serif text-sm sm:ml-2`}
           >
             A
           </button>
@@ -242,7 +252,9 @@ export function VistaLector({
             A
           </button>
 
-          <span className="ml-2">
+          <BotonEscuchar voz={voz} />
+
+          <span className="ml-1 sm:ml-2">
             <BotonFavorito
               fuente={libro.fuente}
               id={libro.id}
@@ -372,6 +384,9 @@ export function VistaLector({
           </span>
         )}
       </footer>
+
+      {/* ── Lectura en voz alta ── */}
+      <PanelVoz voz={voz} idioma={libro.idioma} />
 
       {/* ── Subrayados y notas ── */}
       <BarraSeleccion notas={notas} />

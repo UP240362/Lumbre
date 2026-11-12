@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { IconoAtras } from "@/components/Iconos";
+import { BotonEscuchar, PanelVoz, useLecturaEnVoz } from "@/components/LecturaEnVoz";
 import { LUCES, TAMANO_MAX, TAMANO_MIN, TAMANO_PASO } from "@/lib/luz";
 import {
   guardarLuz,
@@ -258,6 +259,14 @@ function CapituloLocal({
   const hayAnterior = indice > 0;
   const haySiguiente = indice < totalCapitulos - 1;
 
+  // Lectura en voz alta (las voces del teléfono funcionan sin internet).
+  const voz = useLecturaEnVoz({
+    parrafos: libro.capitulos[indice],
+    titulo: libro.titulos[indice] ?? "",
+    haySiguiente,
+    irAlSiguiente: () => irA(indice + 1),
+  });
+
   return (
     <div className="flex min-h-dvh flex-col bg-fondo text-texto">
       <header className="sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-b-2 border-naranja bg-orilla px-3 py-2 sm:px-5">
@@ -298,6 +307,7 @@ function CapituloLocal({
               </button>
             ))}
           </div>
+          <BotonEscuchar voz={voz} />
           <button
             type="button"
             aria-label="Letra más chica"
@@ -328,7 +338,9 @@ function CapituloLocal({
             {libro.titulos[indice]}
           </h1>
           {libro.capitulos[indice].map((parrafo, i) => (
-            <p key={i}>{parrafo}</p>
+            <p key={i} data-parrafo={i}>
+              {parrafo}
+            </p>
           ))}
           <p className="mt-10 font-sans text-sm text-tenue">
             Tus subrayados y notas se ven cuando vuelvas a tener internet.
@@ -385,6 +397,8 @@ function CapituloLocal({
           Siguiente
         </button>
       </footer>
+
+      <PanelVoz voz={voz} />
     </div>
   );
 }

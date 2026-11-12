@@ -136,6 +136,7 @@ async function Lector({ params, searchParams }: Parametros) {
         fuente: libro.fuente,
         titulo: libro.titulo,
         autor: libro.autores.join(", "),
+        idioma: libro.idiomas[0],
       }}
       rutaBase={`/leer/${fuente}/${encodeURIComponent(id)}`}
       indice={indice}

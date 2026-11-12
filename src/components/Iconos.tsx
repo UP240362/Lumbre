@@ -102,6 +102,16 @@ export function IconoCerrar(p: Props) {
   );
 }
 
+export function IconoAudifonos(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M4 15v-3a8 8 0 0 1 16 0v3" />
+      <rect x="3" y="14" width="4" height="6" rx="1.5" />
+      <rect x="17" y="14" width="4" height="6" rx="1.5" />
+    </Base>
+  );
+}
+
 export function IconoLibro(p: Props) {
   return (
     <Base {...p}>

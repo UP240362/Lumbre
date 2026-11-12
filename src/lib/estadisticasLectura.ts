@@ -20,7 +20,13 @@ export type Estadisticas = {
   nombreMes: string; // "noviembre"
   dias: DiaSemana[]; // lunes a domingo de esta semana
   masLeidos: LibroLeido[]; // de este mes, hasta 3
+  meta: number | null; // minutos por semana que la persona se propuso
+  racha: number; // semanas seguidas cumpliendo la meta (cuenta esta si ya se cumplió)
+  diasRestantes: number; // días que faltan para terminar la semana, contando hoy
 };
+
+// Semanas hacia atrás que se revisan para la racha.
+const SEMANAS_RACHA = 12;
 
 // "2026-11-12" ↔ fecha (a mediodía UTC, para que no se mueva de día).
 const aFecha = (dia: string) => new Date(`${dia}T12:00:00Z`);
@@ -39,15 +45,20 @@ export async function estadisticasDeLectura(usuarioId: string): Promise<Estadist
   const inicioMes = `${hoy.slice(0, 7)}-01`;
   const mesAnterior = new Date(Date.UTC(fechaHoy.getUTCFullYear(), fechaHoy.getUTCMonth() - 1, 1, 12));
   const inicioMesPasado = aDia(mesAnterior);
-  const desde = lunesPasado < inicioMesPasado ? lunesPasado : inicioMesPasado;
+  const inicioRacha = aDia(new Date(aFecha(lunes).getTime() - SEMANAS_RACHA * 7 * DIA_MS));
+  const desde = [lunesPasado, inicioMesPasado, inicioRacha].sort()[0];
 
   const supabase = await crearClienteServidor();
-  const { data } = await supabase
-    .from("tiempo_lectura")
-    .select("dia, fuente, book_id, segundos")
-    .eq("user_id", usuarioId)
-    .gte("dia", desde)
-    .lte("dia", hoy);
+  const [{ data }, { data: perfil }] = await Promise.all([
+    supabase
+      .from("tiempo_lectura")
+      .select("dia, fuente, book_id, segundos")
+      .eq("user_id", usuarioId)
+      .gte("dia", desde)
+      .lte("dia", hoy),
+    supabase.from("profiles").select("meta_semanal_minutos").eq("id", usuarioId).maybeSingle(),
+  ]);
+  const meta: number | null = perfil?.meta_semanal_minutos ?? null;
   const filas = (data ?? []) as { dia: string; fuente: string; book_id: string; segundos: number }[];
 
   const sumaEntre = (inicio: string, fin: string) =>
@@ -83,8 +94,25 @@ export async function estadisticasDeLectura(usuarioId: string): Promise<Estadist
     for (const p of progreso ?? []) titulos.set(claveLibro({ fuente: p.fuente, id: p.book_id }), p.titulo);
   }
 
+  // Racha: semanas completas seguidas (de la pasada hacia atrás) en las
+  // que se cumplió la meta, más esta semana si ya se cumplió.
+  const semana = sumaEntre(lunes, manana);
+  let racha = 0;
+  if (meta) {
+    for (let k = 1; k <= SEMANAS_RACHA; k++) {
+      const inicio = aDia(new Date(aFecha(lunes).getTime() - k * 7 * DIA_MS));
+      const fin = aDia(new Date(aFecha(lunes).getTime() - (k - 1) * 7 * DIA_MS));
+      if (sumaEntre(inicio, fin) >= meta * 60) racha++;
+      else break;
+    }
+    if (semana >= meta * 60) racha++;
+  }
+
   return {
-    semana: sumaEntre(lunes, manana),
+    meta,
+    racha,
+    diasRestantes: 7 - desdeLunes,
+    semana,
     semanaPasada: sumaEntre(lunesPasado, lunes),
     mes: sumaEntre(inicioMes, manana),
     mesPasado: sumaEntre(inicioMesPasado, inicioMes),

@@ -8,6 +8,8 @@ import {
   type Estadisticas,
 } from "@/lib/estadisticasLectura";
 import { obtenerUsuario } from "@/lib/sesion";
+import { AvanceMeta } from "./AvanceMeta";
+import { EditorMeta } from "./EditorMeta";
 
 function Comparacion({ ahora, antes, periodo }: { ahora: number; antes: number; periodo: string }) {
   if (antes === 0) {
@@ -110,6 +112,20 @@ export async function TiempoDeLectura() {
           <p className="text-sm text-tenue">En {e.nombreMes}</p>
           <p className="font-serif text-4xl font-semibold">{formatoDuracion(e.mes)}</p>
           <Comparacion ahora={e.mes} antes={e.mesPasado} periodo="el mes pasado" />
+        </div>
+      </div>
+
+      {/* Meta semanal */}
+      <div id="meta" className="mt-6 scroll-mt-24 border-t border-borde pt-5">
+        {e.meta ? (
+          <AvanceMeta e={e} />
+        ) : (
+          <p className="text-tenue">
+            Ponte una meta de minutos por semana para leer con constancia.
+          </p>
+        )}
+        <div className="mt-3">
+          <EditorMeta meta={e.meta} />
         </div>
       </div>
 

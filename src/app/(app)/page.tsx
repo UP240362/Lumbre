@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { AvanceMeta } from "@/components/AvanceMeta";
 import { BarraAvance } from "@/components/BarraAvance";
 import { Buscador } from "@/components/Buscador";
 import { PortadaLibro } from "@/components/PortadaLibro";
 import { RejillaLibros, rutaLibro } from "@/components/TarjetaLibro";
+import { estadisticasDeLectura } from "@/lib/estadisticasLectura";
 import { obtenerClavesFavoritas } from "@/lib/favoritos";
 import { obtenerRecomendaciones } from "@/lib/recomendaciones";
 import { obtenerPerfil } from "@/lib/sesion";
@@ -83,6 +85,27 @@ async function SeguirLeyendo() {
   );
 }
 
+// Avance de la meta de lectura semanal (solo si el usuario tiene una).
+async function MetaDeLaSemana() {
+  const perfil = await obtenerPerfil();
+  const e = await estadisticasDeLectura(perfil.id);
+  if (!e.meta) return null;
+  return (
+    <section
+      aria-label="Tu meta de lectura"
+      className="rounded-2xl border border-borde bg-superficie p-5"
+    >
+      <AvanceMeta e={e} />
+      <Link
+        href="/perfil#meta"
+        className="mt-3 inline-block text-sm font-semibold text-acento underline underline-offset-4"
+      >
+        Ver mi tiempo de lectura
+      </Link>
+    </section>
+  );
+}
+
 // Libros recomendados según los autores y favoritos del usuario.
 async function Recomendados() {
   const [{ libros, personalizadas }, favoritos] = await Promise.all([
@@ -124,6 +147,10 @@ export default function Inicio() {
           <Buscador />
         </div>
       </header>
+
+      <Suspense fallback={null}>
+        <MetaDeLaSemana />
+      </Suspense>
 
       <section aria-labelledby="seguir">
         <h2 id="seguir" className="mb-4 text-xl font-semibold">

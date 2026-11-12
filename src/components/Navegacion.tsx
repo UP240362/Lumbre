@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import {
   IconoCorazon,
   IconoExplorar,
@@ -30,7 +31,9 @@ function useEsActivo() {
     href === "/" ? ruta === "/" : ruta === href || ruta.startsWith(`${href}/`);
 }
 
-export function BarraLateral() {
+// "foto": el círculo con la foto de perfil. Lo arma el servidor (necesita
+// saber quién inició sesión) y se pasa ya listo.
+export function BarraLateral({ foto }: { foto?: ReactNode }) {
   const esActivo = useEsActivo();
 
   return (
@@ -47,12 +50,13 @@ export function BarraLateral() {
               key={href}
               href={href}
               aria-current={activo ? "page" : undefined}
-              className={`flex min-h-11 items-center rounded-xl px-4 font-medium transition-colors ${
+              className={`flex min-h-11 items-center gap-3 rounded-xl px-4 font-medium transition-colors ${
                 activo
                   ? "bg-naranja text-negro"
                   : "text-orilla-texto hover:bg-orilla-superficie"
               }`}
             >
+              {href === "/perfil" && foto}
               {nombre}
             </Link>
           );
@@ -77,7 +81,7 @@ export function BarraSuperiorMovil() {
   );
 }
 
-export function BarraInferior() {
+export function BarraInferior({ foto }: { foto?: ReactNode }) {
   const esActivo = useEsActivo();
 
   return (
@@ -96,7 +100,13 @@ export function BarraInferior() {
               activo ? "text-naranja" : "text-orilla-tenue"
             }`}
           >
-            <Icono className="size-6" />
+            {href === "/perfil" && foto ? (
+              <span className={`rounded-full ${activo ? "ring-2 ring-naranja ring-offset-2 ring-offset-orilla" : ""}`}>
+                {foto}
+              </span>
+            ) : (
+              <Icono className="size-6" />
+            )}
             {nombre}
           </Link>
         );

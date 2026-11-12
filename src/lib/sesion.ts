@@ -14,6 +14,7 @@ export type Perfil = {
   luz_preferida: Luz;
   tamano_letra: number;
   gustos_completados: boolean;
+  foto_version: number | null; // null = sin foto de perfil
 };
 
 // Devuelve el usuario con sesión iniciada, o null si no hay.
@@ -46,7 +47,7 @@ export const obtenerPerfil = cache(async (): Promise<Perfil> => {
   const supabase = await crearClienteServidor();
   const { data } = await supabase
     .from("profiles")
-    .select("nombre, luz_preferida, tamano_letra, gustos_completados")
+    .select("nombre, luz_preferida, tamano_letra, gustos_completados, foto_version")
     .eq("id", usuario.id)
     .maybeSingle();
 
@@ -57,5 +58,6 @@ export const obtenerPerfil = cache(async (): Promise<Perfil> => {
     luz_preferida: data?.luz_preferida ?? "amarilla",
     tamano_letra: data?.tamano_letra ?? 19,
     gustos_completados: data?.gustos_completados ?? false,
+    foto_version: data?.foto_version ?? null,
   };
 });

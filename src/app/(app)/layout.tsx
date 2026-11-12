@@ -5,6 +5,8 @@ import {
   BarraLateral,
   BarraSuperiorMovil,
 } from "@/components/Navegacion";
+import { FotoPerfil } from "@/components/FotoPerfil";
+import { IconoPerfil } from "@/components/Iconos";
 import { SincronizarPreferencias } from "@/components/SincronizarPreferencias";
 import { obtenerPerfil } from "@/lib/sesion";
 
@@ -22,6 +24,28 @@ async function PreferenciasDelPerfil() {
   );
 }
 
+// Círculo con la foto de perfil para la barra de navegación.
+async function FotoDeLaBarra({ tamano }: { tamano: string }) {
+  const perfil = await obtenerPerfil();
+  return (
+    <FotoPerfil
+      version={perfil.foto_version}
+      nombre={perfil.nombre}
+      className={tamano}
+      texto="text-xs"
+    />
+  );
+}
+
+// Mientras llega el perfil se ve el ícono de persona.
+function foto(tamano: string) {
+  return (
+    <Suspense fallback={<IconoPerfil className={tamano} />}>
+      <FotoDeLaBarra tamano={tamano} />
+    </Suspense>
+  );
+}
+
 // Layout de las páginas "de adentro" (Inicio, Explorar, Favoritos, Perfil).
 // La carpeta (app) lleva paréntesis: agrupa páginas para darles este marco,
 // pero NO aparece en la dirección web.
@@ -34,7 +58,7 @@ export default function LayoutApp({ children }: LayoutProps<"/">) {
         <PreferenciasDelPerfil />
       </Suspense>
 
-      <BarraLateral />
+      <BarraLateral foto={foto("size-7")} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <BarraSuperiorMovil />
@@ -46,7 +70,7 @@ export default function LayoutApp({ children }: LayoutProps<"/">) {
         </main>
       </div>
 
-      <BarraInferior />
+      <BarraInferior foto={foto("size-6")} />
     </div>
   );
 }

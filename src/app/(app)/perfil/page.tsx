@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { BotonCerrarSesion } from "@/components/BotonCerrarSesion";
+import { EditorFoto } from "@/components/EditorFoto";
 import { SelectorLuz } from "@/components/SelectorLuz";
 import { SelectorTamano } from "@/components/SelectorTamano";
 import { TiempoDeLectura } from "@/components/TiempoDeLectura";
@@ -12,12 +13,15 @@ export const metadata = { title: "Mi perfil · Lumbre" };
 async function DatosDeCuenta() {
   const perfil = await obtenerPerfil();
   return (
+    <div className="flex flex-col gap-6">
+    <EditorFoto version={perfil.foto_version} nombre={perfil.nombre} />
     <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-[auto_1fr]">
       <dt className="text-tenue">Nombre</dt>
       <dd className="font-medium">{perfil.nombre ?? "Sin nombre"}</dd>
       <dt className="text-tenue">Correo</dt>
       <dd className="break-all font-medium">{perfil.correo}</dd>
     </dl>
+    </div>
   );
 }
 

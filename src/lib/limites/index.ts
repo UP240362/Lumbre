@@ -34,6 +34,8 @@ export const limites = {
   resenas: crearLimitador({ maximo: 30, ventanaMs: HORA }),
   // Envíos del tiempo de lectura (el lector manda uno por minuto).
   tiempo: crearLimitador({ maximo: 300, ventanaMs: HORA }),
+  // Fotos de perfil subidas.
+  fotos: crearLimitador({ maximo: 20, ventanaMs: HORA }),
 };
 
 export async function ipDelVisitante(): Promise<string> {

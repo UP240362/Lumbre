@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Buscador } from "@/components/Buscador";
+import { LibroDelDia, LibroDelDiaCargando } from "@/components/LibroDelDia";
 import { RejillaLibros } from "@/components/TarjetaLibro";
 import { obtenerClavesFavoritas } from "@/lib/favoritos";
 import { buscarLibros, type Libro } from "@/lib/fuentes";
@@ -26,7 +27,7 @@ async function Resultados({
   const { q } = await searchParams;
   const consulta = (typeof q === "string" ? q : "").trim().slice(0, 80);
 
-  // Sin búsqueda: se muestran los libros de la Biblioteca Lumbre.
+  // Sin búsqueda: el libro del día y los libros de la Biblioteca Lumbre.
   if (consulta.length < 2) {
     const [recientes, favoritos] = await Promise.all([
       librosRecientes().catch(() => []),
@@ -39,6 +40,9 @@ async function Resultados({
           Escribe un título o un autor para buscar en la Biblioteca Lumbre,
           Project Gutenberg, Elejandría e Internet Archive.
         </p>
+        <Suspense fallback={<LibroDelDiaCargando />}>
+          <LibroDelDia />
+        </Suspense>
         {recientes.length > 0 && (
           <section aria-labelledby="biblioteca" className="flex flex-col gap-4">
             <h2 id="biblioteca" className="font-serif text-2xl font-semibold">

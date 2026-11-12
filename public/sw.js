@@ -6,7 +6,7 @@
 //
 // Guarda una copia de /sin-conexion y de los archivos que necesita (código,
 // estilos, letras). Esa página no tiene datos de nadie: los libros viven
-// en IndexedDB.
+// en IndexedDB y sus ilustraciones en el almacén "lumbre-imagenes".
 
 const CACHE = "lumbre-sin-conexion";
 const PAGINA = "/sin-conexion";
@@ -83,6 +83,19 @@ self.addEventListener("fetch", (evento) => {
         const destino = new URL(PAGINA, self.location.origin);
         destino.searchParams.set("desde", url.pathname);
         return Response.redirect(destino.href, 302);
+      }),
+    );
+    return;
+  }
+
+  // Ilustraciones y páginas de cómics de los libros guardados (las guarda
+  // src/lib/sinConexion.ts):
+  // por internet; si no hay, la copia del teléfono.
+  if (url.pathname.startsWith("/api/imagen/") || url.pathname.startsWith("/api/archivo/")) {
+    evento.respondWith(
+      fetch(pedido).catch(async () => {
+        const cache = await caches.open("lumbre-imagenes");
+        return (await cache.match(pedido)) ?? Response.error();
       }),
     );
     return;

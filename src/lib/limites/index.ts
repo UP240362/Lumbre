@@ -34,6 +34,9 @@ export const limites = {
   resenas: crearLimitador({ maximo: 30, ventanaMs: HORA }),
   // Envíos del tiempo de lectura (el lector manda uno por minuto).
   tiempo: crearLimitador({ maximo: 300, ventanaMs: HORA }),
+  // Ilustraciones de los libros (al guardar un libro en el teléfono se
+  // piden todas seguidas).
+  imagenes: crearLimitador({ maximo: 800, ventanaMs: 10 * MINUTO }),
   // Fotos de perfil subidas.
   fotos: crearLimitador({ maximo: 20, ventanaMs: HORA }),
 };

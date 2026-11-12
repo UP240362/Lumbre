@@ -122,4 +122,19 @@ body {
     box-shadow: 0 0 0 0.35em color-mix(in srgb, var(--naranja) 14%, transparent);
     transition: background-color 0.3s;
   }
+
+  /* Ilustraciones del libro (Ilustracion.tsx) según la luz:
+     - amarilla: el blanco del grabado toma el color del papel, como en un
+       libro viejo;
+     - negra: se atenúan para no deslumbrar de noche. */
+  /* En el visor (en grande) se ven tal cual. */
+  :root:not([data-luz="blanca"]):not([data-luz="negra"]) .foto-libro {
+    mix-blend-mode: multiply;
+  }
+  :root[data-luz="negra"] .foto-libro {
+    filter: brightness(0.8) contrast(1.05);
+  }
+  .visor-ilustracion::backdrop {
+    background: rgb(0 0 0 / 0.92);
+  }
 }

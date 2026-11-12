@@ -4,8 +4,11 @@
 // leerlos sin internet. El avance se anota en el teléfono como pendiente
 // y se sube a tu cuenta cuando vuelve la conexión.
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { IconoAtras } from "@/components/Iconos";
+import { Ilustracion } from "@/components/Ilustracion";
+import { VisorComic } from "@/components/VisorComic";
+import { totalPaginas, urlArchivo, urlImagen, type PaginasComic } from "@/lib/lectura/tipos";
 import { BotonEscuchar, PanelVoz, useLecturaEnVoz } from "@/components/LecturaEnVoz";
 import { useTiempoLectura } from "@/lib/tiempoLectura";
 import { LUCES, TAMANO_MAX, TAMANO_MIN, TAMANO_PASO } from "@/lib/luz";
@@ -68,14 +71,14 @@ export function PantallaSinConexion() {
   }, []);
 
   if (abierto) {
-    return (
-      <LectorLocal
-        libro={abierto}
-        alSalir={() => {
-          setAbierto(null);
-          listarLibros().then(setLibros).catch(() => {});
-        }}
-      />
+    const alSalir = () => {
+      setAbierto(null);
+      listarLibros().then(setLibros).catch(() => {});
+    };
+    return abierto.comic ? (
+      <ComicLocal libro={abierto} paginas={abierto.comic} alSalir={alSalir} />
+    ) : (
+      <LectorLocal libro={abierto} alSalir={alSalir} />
     );
   }
 
@@ -153,6 +156,48 @@ export function PantallaSinConexion() {
         </div>
       </main>
     </div>
+  );
+}
+
+// ── Cómic sin conexión ──
+// Las páginas (o el PDF) salen del almacén del teléfono a través de
+// public/sw.js; si no se alcanzaron a guardar, el visor avisa en esa página.
+
+function ComicLocal({
+  libro,
+  paginas,
+  alSalir,
+}: {
+  libro: LibroGuardado;
+  paginas: PaginasComic;
+  alSalir: () => void;
+}) {
+  const total = totalPaginas(paginas);
+  useTiempoLectura({ dueno: libro.dueno, fuente: libro.fuente, id: libro.id, escuchando: false });
+  return (
+    <VisorComic
+      clave={libro.clave}
+      titulo={libro.titulo}
+      paginas={paginas}
+      urlPagina={(ruta) => urlImagen(libro.fuente, libro.id, ruta)}
+      urlPdf={urlArchivo(libro.fuente, libro.id)}
+      inicial={libro.capitulo}
+      nota="Sin conexión"
+      alCambiar={(pagina) => {
+        const porcentaje = total > 1 ? (pagina / (total - 1)) * 100 : 100;
+        void anotarAvance(libro.fuente, libro.id, pagina, porcentaje, true).catch(() => {});
+      }}
+      volver={
+        <button
+          type="button"
+          onClick={alSalir}
+          aria-label="Volver a los libros guardados"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-orilla-borde text-naranja"
+        >
+          <IconoAtras />
+        </button>
+      }
+    />
   );
 }
 
@@ -257,6 +302,9 @@ function CapituloLocal({
   }, []);
 
   const totalCapitulos = libro.titulos.length;
+  // Ilustraciones de este capítulo (si no se alcanzaron a guardar, no se ven).
+  const imagenes = libro.imagenes?.[indice] ?? [];
+  const pies = new Set(imagenes.flatMap((imagen) => (imagen.pie !== undefined ? [imagen.pie] : [])));
   const hayAnterior = indice > 0;
   const haySiguiente = indice < totalCapitulos - 1;
 
@@ -347,10 +395,38 @@ function CapituloLocal({
             {libro.titulos[indice]}
           </h1>
           {libro.capitulos[indice].map((parrafo, i) => (
-            <p key={i} data-parrafo={i}>
-              {parrafo}
-            </p>
+            <Fragment key={i}>
+              {imagenes
+                .filter((imagen) => imagen.antes === i)
+                .map((imagen, j) => (
+                  <Ilustracion
+                    key={j}
+                    imagen={imagen}
+                    src={urlImagen(libro.fuente, libro.id, imagen.ruta)}
+                    pie={imagen.pie !== undefined ? libro.capitulos[indice][imagen.pie] : undefined}
+                  />
+                ))}
+              <p
+                data-parrafo={i}
+                className={
+                  pies.has(i)
+                    ? "mx-auto mb-10 max-w-[90%] text-center text-[0.85em] italic leading-snug text-tenue"
+                    : undefined
+                }
+              >
+                {parrafo}
+              </p>
+            </Fragment>
           ))}
+          {imagenes
+            .filter((imagen) => imagen.antes >= libro.capitulos[indice].length)
+            .map((imagen, j) => (
+              <Ilustracion
+                key={`fin-${j}`}
+                imagen={imagen}
+                src={urlImagen(libro.fuente, libro.id, imagen.ruta)}
+              />
+            ))}
           <p className="mt-10 font-sans text-sm text-tenue">
             Tus subrayados y notas se ven cuando vuelvas a tener internet.
           </p>

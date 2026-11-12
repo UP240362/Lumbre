@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from "react";
 import { BotonFavorito } from "@/components/BotonFavorito";
 import { BotonEscuchar, PanelVoz, useLecturaEnVoz } from "@/components/LecturaEnVoz";
 import { IconoAtras, IconoNota } from "@/components/Iconos";
+import { Ilustracion } from "@/components/Ilustracion";
+import { urlImagen, type Imagen } from "@/lib/lectura/tipos";
 import { LUCES, TAMANO_MAX, TAMANO_MIN, TAMANO_PASO } from "@/lib/luz";
 import {
   guardarLuz,
@@ -40,6 +42,7 @@ type Props = {
   indice: number; // capítulo actual, contando desde 0
   titulos: string[]; // títulos de todos los capítulos
   parrafos: string[]; // texto del capítulo actual
+  imagenes: Imagen[]; // ilustraciones del capítulo, cada una con su lugar
   // Para calcular el porcentaje del libro: cuántas letras hay antes de este
   // capítulo, cuántas tiene este y cuántas el libro entero.
   letrasAntes: number;
@@ -67,6 +70,7 @@ export function VistaLector({
   indice,
   titulos,
   parrafos,
+  imagenes,
   letrasAntes,
   letrasCapitulo,
   letrasTotal,
@@ -87,6 +91,8 @@ export function VistaLector({
   });
 
   const total = titulos.length;
+  // Párrafos que son pie de foto de una ilustración (se ven distinto).
+  const pies = new Set(imagenes.flatMap((imagen) => (imagen.pie !== undefined ? [imagen.pie] : [])));
   const rutaCapitulo = (n: number) => `${rutaBase}?c=${n + 1}`;
   const hayAnterior = indice > 0;
   const haySiguiente = indice < total - 1;
@@ -308,7 +314,23 @@ export function VistaLector({
           <h1 className="mb-8 text-[1.5em] font-semibold leading-tight">
             {titulos[indice]}
           </h1>
-          <ParrafosAnotados parrafos={parrafos} notas={notas} />
+          <ParrafosAnotados
+            parrafos={parrafos}
+            notas={notas}
+            pies={pies}
+            antesDe={(i) =>
+              imagenes
+                .filter((imagen) => imagen.antes === i)
+                .map((imagen, j) => (
+                  <Ilustracion
+                    key={`${i}-${j}`}
+                    imagen={imagen}
+                    src={urlImagen(libro.fuente, libro.id, imagen.ruta)}
+                    pie={imagen.pie !== undefined ? parrafos[imagen.pie] : undefined}
+                  />
+                ))
+            }
+          />
 
           <nav
             aria-label="Capítulos"

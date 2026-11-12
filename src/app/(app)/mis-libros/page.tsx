@@ -13,7 +13,7 @@ async function Lista() {
   const [{ data }, favoritos] = await Promise.all([
     supabase
       .from("libros_propios")
-      .select("id, titulo, autor, tipo")
+      .select("id, titulo, autor, tipo, formato")
       .order("creado_en", { ascending: false }),
     obtenerClavesFavoritas(),
   ]);
@@ -21,7 +21,7 @@ async function Lista() {
   if (!data || data.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-borde p-6 text-tenue">
-        Aún no has agregado libros. Sube un PDF o ePub, o pega un enlace con
+        Aún no has agregado libros. Sube un PDF, ePub o cómic CBZ, o pega un enlace con
         el formulario de arriba.
       </p>
     );
@@ -41,7 +41,11 @@ async function Lista() {
             favorito={favoritos.has(`propio:${fila.id}`)}
           />
           <p className="text-xs text-tenue">
-            {fila.tipo === "archivo" ? "Archivo subido" : "Enlace"}
+            {fila.formato === "comic"
+              ? "Por páginas (cómic)"
+              : fila.tipo === "archivo"
+                ? "Archivo subido"
+                : "Enlace"}
           </p>
           <BotonEliminar id={fila.id} titulo={fila.titulo} />
         </li>

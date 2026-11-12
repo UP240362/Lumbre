@@ -7,7 +7,9 @@
 
 import { cacheLife } from "next/cache";
 import { htmlACapitulos } from "../lectura/html";
+import { medidasImagen } from "../lectura/medidas";
 import { textoACapitulos } from "../lectura/textoPlano";
+import { tipoDeImagen } from "../lectura/tipos";
 import { comoTexto, descargar } from "./descargar";
 import type { FuenteLibros, Libro } from "./tipos";
 
@@ -67,6 +69,28 @@ function ordenarNombre(nombre: string): string {
 
 function urlTexto(id: string): string {
   return `${BASE}/cache/epub/${id}/pg${id}-images.html`;
+}
+
+// Las ilustraciones están junto a la página del libro ("images/p007.jpg").
+// Solo se aceptan rutas sencillas dentro de esa carpeta.
+function rutaImagen(src: string): string | null {
+  const ruta = src.split("#")[0];
+  if (!/^[\w-][\w\-./]*$/.test(ruta) || ruta.includes("..") || !tipoDeImagen(ruta)) return null;
+  return ruta;
+}
+
+// Ancho y alto de una ilustración, pidiendo solo sus primeros 64 KB.
+// Se guarda para siempre: la imagen de un libro no cambia.
+async function medidasDe(id: string, ruta: string) {
+  "use cache";
+  cacheLife("max");
+  const respuesta = await fetch(`${BASE}/cache/epub/${id}/${ruta}`, {
+    headers: { "User-Agent": AGENTE, Range: "bytes=0-65535" },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (respuesta.status === 404) return null;
+  if (!respuesta.ok) throw new Error(`Gutenberg respondió ${respuesta.status}`);
+  return medidasImagen(new Uint8Array(await respuesta.arrayBuffer()));
 }
 
 // Lee la lista de resultados de una búsqueda.
@@ -155,6 +179,21 @@ async function pedirLibro(id: string): Promise<Libro | null> {
   };
 }
 
+// Libros de un autor, del más descargado al menos (así los ordena
+// Gutenberg). "idAutor" es su número de autor en Gutenberg.
+export async function librosDeAutor(idAutor: string): Promise<Libro[]> {
+  "use cache";
+  cacheLife("days");
+
+  if (!/^\d+$/.test(idAutor)) return [];
+  const respuesta = await fetch(`${BASE}/ebooks/author/${idAutor}.opds`, {
+    headers: { "User-Agent": AGENTE },
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!respuesta.ok) return [];
+  return leerResultados(await respuesta.text());
+}
+
 export const gutenberg: FuenteLibros = {
   id: "gutenberg",
   nombre: "Project Gutenberg",
@@ -206,7 +245,12 @@ export const gutenberg: FuenteLibros = {
         // Marcas del número de página del libro en papel, como "[Pg 3]".
         .replace(/<span\b[^>]*class="[^"]*pagenum[^"]*"[^>]*>[\s\S]*?<\/span>/gi, "")
         .replace(/\[Pg\s*\d+\]/g, "");
-      return htmlACapitulos(sinAvisos);
+      return htmlACapitulos(sinAvisos, {
+        imagen: (src) => {
+          const ruta = rutaImagen(src);
+          return ruta ? { ruta } : null;
+        },
+      });
     }
 
     // Algunos libros antiguos solo existen como texto plano.
@@ -221,5 +265,19 @@ export const gutenberg: FuenteLibros = {
         fin > 0 ? fin : undefined,
       ),
     );
+  },
+
+  async imagen(libro, ruta) {
+    const valida = rutaImagen(ruta);
+    const tipo = valida && tipoDeImagen(valida);
+    if (!valida || !tipo || !/^\d+$/.test(libro.id)) return null;
+    const datos = await descargar(`${BASE}/cache/epub/${libro.id}/${valida}`);
+    return datos ? { datos, tipo } : null;
+  },
+
+  async medidas(libro, ruta) {
+    const valida = rutaImagen(ruta);
+    if (!valida || !/^\d+$/.test(libro.id)) return null;
+    return medidasDe(libro.id, valida);
   },
 };

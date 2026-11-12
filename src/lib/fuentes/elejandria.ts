@@ -12,7 +12,17 @@ import { cacheLife } from "next/cache";
 import { epubACapitulos } from "../lectura/epub";
 import { decodificarHtml, simplificar } from "../texto";
 import { descargar } from "./descargar";
+import { imagenDeArchivo } from "./imagenesEpub";
 import type { FuenteLibros, Libro } from "./tipos";
+
+// El archivo ePub del libro. El enlace de la página
+// (.../libro/descargar/<titulo>/<autor>/<libro>/<archivo>) lleva a una
+// pantalla intermedia; el archivo en sí está en link_descarga_libro.
+async function bajarEpub(libro: Libro): Promise<Uint8Array | null> {
+  const numeros = libro.urlTexto?.match(/\/(\d+)\/(\d+)$/);
+  if (!numeros) throw new Error("Elejandría no ofrece este libro en ePub");
+  return descargar(`${BASE}/libro/link_descarga_libro/${numeros[1]}/${numeros[2]}`);
+}
 
 const BASE = "https://www.elejandria.com";
 const AGENTE = "Lumbre/0.1 (lector de libros de dominio publico)";
@@ -102,6 +112,25 @@ async function aLibro(entrada: Entrada): Promise<Libro> {
   };
 }
 
+// Libros de un autor en el índice: se reconocen porque la dirección del
+// libro trae su primer nombre y su último apellido ("Juana Inés de la Cruz"
+// → "sor-juana-ines-de-la-cruz"). Devuelve número y título aproximado.
+export async function librosDeAutor(nombre: string) {
+  const palabras = simplificar(nombre)
+    .split(/[^a-z0-9]+/)
+    .filter((p) => p.length >= 3 && !["del", "las", "los", "von", "van"].includes(p));
+  if (palabras.length === 0) return [];
+  const claves = [...new Set([palabras[0], palabras.at(-1)!])];
+
+  const indice = await pedirIndice();
+  return indice
+    .filter((e) => {
+      const autor = e.autor.split(" ");
+      return claves.every((c) => autor.includes(c));
+    })
+    .map((e) => ({ id: e.id, titulo: e.titulo }));
+}
+
 export const elejandria: FuenteLibros = {
   id: "elejandria",
   nombre: "Elejandría",
@@ -138,17 +167,14 @@ export const elejandria: FuenteLibros = {
     return entrada ? aLibro(entrada) : null;
   },
 
-  // Elejandría entrega el libro como archivo ePub. El enlace de la página
-  // (.../libro/descargar/<titulo>/<autor>/<libro>/<archivo>) lleva a una
-  // pantalla intermedia; el archivo en sí está en link_descarga_libro.
+  // Elejandría entrega el libro como archivo ePub.
   async leer(libro) {
-    const numeros = libro.urlTexto?.match(/\/(\d+)\/(\d+)$/);
-    if (!numeros) throw new Error("Elejandría no ofrece este libro en ePub");
-
-    const datos = await descargar(
-      `${BASE}/libro/link_descarga_libro/${numeros[1]}/${numeros[2]}`,
-    );
+    const datos = await bajarEpub(libro);
     if (!datos) throw new Error("Elejandría no tiene el archivo de este libro");
     return epubACapitulos(datos);
+  },
+
+  imagen(libro, ruta) {
+    return imagenDeArchivo(`elejandria:${libro.id}`, () => bajarEpub(libro), ruta);
   },
 };

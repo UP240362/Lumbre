@@ -42,6 +42,7 @@ export async function GET(
         autor: libro.autores.join(", "),
         titulos: capitulos.map((c) => c.titulo),
         capitulos: capitulos.map((c) => c.parrafos),
+        imagenes: capitulos.map((c) => c.imagenes ?? []),
       },
       // Es contenido de una cuenta: que ningún intermediario lo guarde.
       { headers: { "Cache-Control": "private, no-store" } },

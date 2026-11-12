@@ -24,6 +24,7 @@ import path from "node:path";
 import { strFromU8, unzipSync } from "fflate";
 import { archivoACapitulos } from "../lectura/detectar";
 import { decodificarHtml, simplificar } from "../texto";
+import { imagenDeArchivo } from "./imagenesEpub";
 import type { FuenteLibros, Libro } from "./tipos";
 
 // Dónde está la carpeta. En Docker es /app/biblioteca (ver docker-compose).
@@ -228,15 +229,26 @@ export const biblioteca: FuenteLibros = {
   },
 
   async leer(libro) {
-    const entrada = ES_ID.test(libro.id) ? (await obtenerIndice()).libros.get(libro.id) : undefined;
-    if (!entrada) throw new Error("Ese libro ya no está en la biblioteca");
+    const { datos, tipo } = await abrirArchivo(libro);
+    return archivoACapitulos(datos, tipo);
+  },
 
-    // Doble seguro: la ruta real debe quedar dentro de la carpeta.
-    const raiz = await realpath(RAIZ);
-    const ruta = await realpath(path.join(raiz, entrada.relativa));
-    if (!ruta.startsWith(raiz + path.sep)) throw new Error("Ruta no permitida");
-
-    const datos = new Uint8Array(await readFile(ruta));
-    return archivoACapitulos(datos, FORMATOS[path.extname(ruta).toLowerCase()]);
+  imagen(libro, ruta) {
+    return imagenDeArchivo(`biblioteca:${libro.id}`, async () => (await abrirArchivo(libro)).datos, ruta);
   },
 };
+
+async function abrirArchivo(libro: Libro): Promise<{ datos: Uint8Array; tipo: string }> {
+  const entrada = ES_ID.test(libro.id) ? (await obtenerIndice()).libros.get(libro.id) : undefined;
+  if (!entrada) throw new Error("Ese libro ya no está en la biblioteca");
+
+  // Doble seguro: la ruta real debe quedar dentro de la carpeta.
+  const raiz = await realpath(RAIZ);
+  const ruta = await realpath(path.join(raiz, entrada.relativa));
+  if (!ruta.startsWith(raiz + path.sep)) throw new Error("Ruta no permitida");
+
+  return {
+    datos: new Uint8Array(await readFile(ruta)),
+    tipo: FORMATOS[path.extname(ruta).toLowerCase()],
+  };
+}

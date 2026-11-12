@@ -7,7 +7,7 @@
 //   3. Agregarla a la lista FUENTES de aquí abajo.
 
 import { repartir } from "../lectura/repartir";
-import type { Capitulo } from "../lectura/tipos";
+import type { Capitulo, Imagen } from "../lectura/tipos";
 import { simplificar } from "../texto";
 import { archive } from "./archive";
 import { biblioteca } from "./biblioteca";
@@ -84,6 +84,30 @@ export async function obtenerLibro(
 
 const LIBROS_EN_MEMORIA = 6;
 const memoria = new Map<string, Promise<Capitulo[]>>();
+
+// ── Ilustraciones ───────────────────────────────────────────────────
+
+export function imagenDeLibro(
+  libro: Libro,
+  ruta: string,
+): Promise<{ datos: Uint8Array; tipo: string } | null> {
+  return FUENTES[libro.fuente].imagen?.(libro, ruta) ?? Promise.resolve(null);
+}
+
+// Llena el ancho y alto de las ilustraciones que no lo traían (así el
+// lector les aparta su lugar y el texto no brinca al cargarlas). Si una
+// tarda o falla, se queda sin medidas: se verá igual, solo sin apartar lugar.
+export async function completarMedidas(libro: Libro, imagenes: Imagen[]): Promise<Imagen[]> {
+  const medir = FUENTES[libro.fuente].medidas;
+  if (!medir) return imagenes;
+  return Promise.all(
+    imagenes.map(async (imagen) => {
+      if (imagen.ancho && imagen.alto) return imagen;
+      const medidas = await medir(libro, imagen.ruta).catch(() => null);
+      return medidas ? { ...imagen, ...medidas } : imagen;
+    }),
+  );
+}
 
 // Saca un libro de la memoria (por ejemplo, cuando el usuario lo elimina).
 export function olvidarLibro(libro: { fuente: string; id: string }) {

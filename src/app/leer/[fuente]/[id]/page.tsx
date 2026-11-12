@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { IconoAtras } from "@/components/Iconos";
 import { claveLibro, obtenerClavesFavoritas } from "@/lib/favoritos";
-import { esFuente, leerLibro, obtenerLibro } from "@/lib/fuentes";
+import { completarMedidas, esFuente, leerLibro, obtenerLibro, type Libro } from "@/lib/fuentes";
+import { paginasComic } from "@/lib/fuentes/propio";
+import { totalPaginas } from "@/lib/lectura/tipos";
+import { LectorComic } from "./LectorComic";
 import { NOMBRES_FUENTE } from "@/lib/fuentes/tipos";
 import { largoDe } from "@/lib/lectura/repartir";
 import { resenasDelLibro, sePuedeResenar } from "@/lib/resenas";
@@ -63,6 +66,11 @@ async function Lector({ params, searchParams }: Parametros) {
         </p>
       </Marco>
     );
+  }
+
+  // Los cómics (libros propios que se leen por páginas) van a su visor.
+  if (libro.formato === "comic") {
+    return <Comic libro={libro} usuarioId={perfil.id} c={c} />;
   }
 
   // 2. El texto, ya separado en capítulos.
@@ -125,11 +133,12 @@ async function Lector({ params, searchParams }: Parametros) {
     }
   }
 
-  const [favoritos, resenas] = await Promise.all([
+  const [favoritos, resenas, imagenes] = await Promise.all([
     obtenerClavesFavoritas(),
     sePuedeResenar(libro.fuente)
       ? resenasDelLibro(libro.fuente, libro.id, perfil.id)
       : Promise.resolve(null),
+    completarMedidas(libro, capitulos[indice].imagenes ?? []),
   ]);
 
   return (
@@ -148,6 +157,7 @@ async function Lector({ params, searchParams }: Parametros) {
       indice={indice}
       titulos={capitulos.map((capitulo) => capitulo.titulo)}
       parrafos={capitulos[indice].parrafos}
+      imagenes={imagenes}
       letrasAntes={letrasAntesDe(indice)}
       letrasCapitulo={largos[indice]}
       letrasTotal={letrasTotal}
@@ -156,6 +166,51 @@ async function Lector({ params, searchParams }: Parametros) {
       subrayados={subrayados}
       subrayadoInicial={objetivo?.capitulo === indice ? objetivo.id : null}
       resenas={resenas}
+    />
+  );
+}
+
+// Abre un cómic en la página de la dirección (?c=) o donde se quedó.
+async function Comic({
+  libro,
+  usuarioId,
+  c,
+}: {
+  libro: Libro;
+  usuarioId: string;
+  c: string | string[] | undefined;
+}) {
+  const paginas = await paginasComic(libro).catch(() => null);
+  if (!paginas || totalPaginas(paginas) === 0) {
+    return (
+      <Marco>
+        <p role="alert">No pudimos abrir las páginas de «{libro.titulo}». Intenta de nuevo en un momento.</p>
+      </Marco>
+    );
+  }
+
+  const ultima = totalPaginas(paginas) - 1;
+  const pedida = typeof c === "string" ? Number.parseInt(c, 10) : Number.NaN;
+  let inicial = 0;
+  if (Number.isInteger(pedida)) {
+    inicial = pedida - 1;
+  } else {
+    const supabase = await crearClienteServidor();
+    const { data } = await supabase
+      .from("progreso_lectura")
+      .select("capitulo")
+      .eq("fuente", libro.fuente)
+      .eq("book_id", libro.id)
+      .maybeSingle();
+    inicial = data?.capitulo ?? 0;
+  }
+
+  return (
+    <LectorComic
+      usuarioId={usuarioId}
+      libro={{ id: libro.id, fuente: libro.fuente, titulo: libro.titulo, autor: libro.autores.join(", ") }}
+      paginas={paginas}
+      inicial={Math.min(ultima, Math.max(0, inicial))}
     />
   );
 }

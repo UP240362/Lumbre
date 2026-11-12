@@ -14,7 +14,7 @@
 // letra empieza y termina la selección.
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { CompartirCita } from "@/components/CompartirCita";
 import { IconoBasura, IconoCerrar, IconoCompartir, IconoNota } from "@/components/Iconos";
 import {
@@ -280,13 +280,48 @@ export type Anotaciones = ReturnType<typeof useAnotaciones>;
 export function ParrafosAnotados({
   parrafos,
   notas,
+  antesDe,
+  pies,
 }: {
   parrafos: string[];
   notas: Anotaciones;
+  // Lo que va antes del párrafo i (las ilustraciones). Con i = parrafos.length,
+  // lo que va al final del capítulo.
+  antesDe?: (i: number) => React.ReactNode;
+  pies?: Set<number>; // párrafos que son pie de una ilustración
 }) {
-  return parrafos.map((parrafo, i) => (
+  return (
+    <>
+      {parrafos.map((parrafo, i) => (
+        <Fragment key={i}>
+          {antesDe?.(i)}
+          <ParrafoAnotado parrafo={parrafo} i={i} notas={notas} esPie={pies?.has(i) ?? false} />
+        </Fragment>
+      ))}
+      {antesDe?.(parrafos.length)}
+    </>
+  );
+}
+
+function ParrafoAnotado({
+  parrafo,
+  i,
+  notas,
+  esPie,
+}: {
+  parrafo: string;
+  i: number;
+  notas: Anotaciones;
+  esPie: boolean;
+}) {
+  return (
     // whitespace-pre-line respeta los saltos de línea de los versos
-    <p key={i} data-parrafo={i} className="whitespace-pre-line">
+    <p
+      data-parrafo={i}
+      className={`whitespace-pre-line ${
+        esPie ? "mx-auto mb-10 max-w-[90%] text-center text-[0.85em] italic leading-snug text-tenue" : ""
+      }`}
+    >
       {segmentar(parrafo, i, notas.ubicados).map((segmento, j) => {
         const s = segmento.subrayado;
         if (!s) return segmento.texto;
@@ -311,7 +346,7 @@ export function ParrafosAnotados({
         );
       })}
     </p>
-  ));
+  );
 }
 
 // ── Barrita que aparece al seleccionar texto ─────────────────────────

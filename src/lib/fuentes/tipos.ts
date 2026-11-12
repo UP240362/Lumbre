@@ -35,6 +35,10 @@ export type Libro = {
   // Dónde se descarga el texto para leerlo. En los resultados de búsqueda
   // puede venir vacío (null); "obtener" lo llena.
   urlTexto: string | null;
+  // Cómo se lee: en párrafos (lo normal) o página por página, como
+  // imágenes (cómics, manga, escaneos). Solo los libros propios pueden ser
+  // "comic"; si no viene, es "texto".
+  formato?: "texto" | "comic";
 };
 
 // Lo que toda fuente debe saber hacer.
@@ -45,4 +49,9 @@ export interface FuenteLibros {
   obtener(id: string): Promise<Libro | null>;
   // Descarga el texto del libro y lo entrega ya separado en capítulos.
   leer(libro: Libro): Promise<Capitulo[]>;
+  // Entrega una ilustración del libro ("ruta" viene de Capitulo.imagenes).
+  // Las fuentes sin ilustraciones no lo implementan.
+  imagen?(libro: Libro, ruta: string): Promise<{ datos: Uint8Array; tipo: string } | null>;
+  // Ancho y alto de una ilustración, cuando no se supo al leer el libro.
+  medidas?(libro: Libro, ruta: string): Promise<{ ancho: number; alto: number } | null>;
 }

@@ -80,27 +80,35 @@ async function Contenido({ params }: { params: PageProps<"/lectores/[apodo]">["p
 
   return (
     <div className="flex flex-col gap-10">
-      <header className="flex flex-wrap items-center gap-5">
-        <FotoPerfil
-          version={p.foto_version}
-          nombre={p.apodo}
-          de={esYo ? undefined : p.apodo}
-          className="size-24"
-          texto="text-4xl"
-        />
-        <div className="min-w-0 flex-1">
-          <h1 className="break-all font-serif text-3xl font-semibold md:text-4xl">@{p.apodo}</h1>
-          <p className="mt-1 text-tenue">
-            {p.amigos === 1 ? "1 amigo" : `${p.amigos} amigos`}
-            {(esYo || p.visible) && <> · {NOMBRE_VISIBILIDAD[p.visibilidad]}</>}
-          </p>
+      {/* En celular: foto y apodo arriba, botones abajo. En pantallas
+          grandes, todo en una fila. */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <FotoPerfil
+            version={p.foto_version}
+            nombre={p.apodo}
+            de={esYo ? undefined : p.apodo}
+            className="size-20 sm:size-24"
+            texto="text-3xl sm:text-4xl"
+          />
+          <div className="min-w-0 flex-1">
+            <h1 className="font-serif text-2xl font-semibold [overflow-wrap:anywhere] sm:text-4xl">
+              @{p.apodo}
+            </h1>
+            <p className="mt-1 text-sm text-tenue sm:text-base">
+              {p.amigos === 1 ? "1 amigo" : `${p.amigos} amigos`}
+              {(esYo || p.visible) && <> · {NOMBRE_VISIBILIDAD[p.visibilidad]}</>}
+            </p>
+          </div>
         </div>
         {esYo ? (
-          <Link href="/perfil#publico" className="boton-primario">
+          <Link href="/perfil#publico" className="boton-primario self-start sm:self-auto">
             Editar privacidad
           </Link>
         ) : (
-          <BotonesAmistad apodo={p.apodo} relacion={p.relacion as Relacion} />
+          <div className="[&>div]:justify-start sm:[&>div]:justify-end">
+            <BotonesAmistad apodo={p.apodo} relacion={p.relacion as Relacion} />
+          </div>
         )}
       </header>
 

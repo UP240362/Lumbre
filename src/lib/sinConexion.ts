@@ -6,6 +6,10 @@
 // IndexedDB (una pequeña base de datos que trae el navegador). Se conservan
 // los últimos LIMITE libros que abriste. Lo que leas sin conexión se anota
 // aquí como "pendiente" y se sube a tu cuenta cuando vuelve el internet.
+// Las ilustraciones se guardan aparte, en el almacén de caché del navegador
+// ("lumbre-imagenes"); public/sw.js las entrega cuando no hay internet.
+
+import { urlArchivo, urlImagen, type Imagen, type PaginasComic } from "./lectura/tipos";
 
 export type LibroGuardado = {
   clave: string; // "<fuente>:<id>"
@@ -16,6 +20,10 @@ export type LibroGuardado = {
   autor: string;
   titulos: string[];
   capitulos: string[][]; // párrafos de cada capítulo
+  imagenes?: Imagen[][]; // ilustraciones de cada capítulo (libros guardados antes: no hay)
+  // Si es un cómic: sus páginas. Entonces "capitulo" es el número de página
+  // y "capitulos" y "titulos" van vacíos.
+  comic?: PaginasComic;
   capitulo: number; // dónde se quedó
   porcentaje: number;
   pendiente: boolean; // avance hecho sin internet que falta subir
@@ -30,6 +38,73 @@ const LIMITE = 10;
 const RENOVAR_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const clave = (fuente: string, id: string) => `${fuente}:${id}`;
+
+// ── Ilustraciones ──
+const CACHE_IMAGENES = "lumbre-imagenes";
+// Tope por libro: un libro muy ilustrado (el Quijote de Doré tiene cientos
+// de grabados) no debe llenar el teléfono. Se guardan las primeras.
+const MAX_BYTES_IMAGENES = 25 * 1024 * 1024;
+
+// Libros cuyas ilustraciones ya se revisaron en esta visita (el lector llama
+// a guardarEnTelefono en cada capítulo; basta con una vez).
+const imagenesRevisadas = new Set<string>();
+
+async function guardarImagenes(fuente: string, id: string, imagenes: Imagen[][] | undefined) {
+  if (!imagenes?.length) return;
+  await guardarEnCache(
+    fuente,
+    id,
+    imagenes.flat().map((imagen) => urlImagen(fuente, id, imagen.ruta)),
+    MAX_BYTES_IMAGENES,
+  );
+}
+
+// Descarga esas direcciones al almacén del teléfono (en orden, hasta el
+// tope de bytes), una sola vez por libro y visita.
+async function guardarEnCache(fuente: string, id: string, urls: string[], maximo: number) {
+  if (typeof caches === "undefined") return;
+  if (imagenesRevisadas.has(clave(fuente, id))) return;
+  imagenesRevisadas.add(clave(fuente, id));
+  const pendientes = [...new Set(urls)];
+  if (!pendientes.length) return;
+  const cache = await caches.open(CACHE_IMAGENES);
+  let total = 0;
+
+  // Tres descargas a la vez, hasta llenar el tope.
+  async function trabajar() {
+    while (pendientes.length && total < maximo) {
+      const url = pendientes.shift()!;
+      const guardada = await cache.match(url);
+      if (guardada) {
+        total += (await guardada.blob()).size;
+        continue;
+      }
+      const respuesta = await fetch(url).catch(() => null);
+      if (!respuesta?.ok) continue;
+      total += (await respuesta.clone().blob()).size;
+      await cache.put(url, respuesta);
+    }
+  }
+  await Promise.all([trabajar(), trabajar(), trabajar()]);
+}
+
+async function borrarImagenes(libros: { fuente: string; id: string }[] | "todas") {
+  if (typeof caches === "undefined") return;
+  if (libros === "todas") {
+    imagenesRevisadas.clear();
+    await caches.delete(CACHE_IMAGENES);
+    return;
+  }
+  const cache = await caches.open(CACHE_IMAGENES);
+  const prefijos = libros.flatMap((l) => [
+    `/api/imagen/${encodeURIComponent(l.fuente)}/${encodeURIComponent(l.id)}?`,
+    urlArchivo(l.fuente, l.id),
+  ]);
+  for (const pedido of await cache.keys()) {
+    const { pathname, search } = new URL(pedido.url);
+    if (prefijos.some((p) => `${pathname}${search}`.startsWith(p))) await cache.delete(pedido);
+  }
+}
 
 function abrir(): Promise<IDBDatabase> {
   return new Promise((resolver, fallar) => {
@@ -78,6 +153,67 @@ function poner(libro: LibroGuardado) {
   });
 }
 
+// Cómics: se guardan las páginas (hasta este tope) o el PDF completo.
+const MAX_BYTES_COMIC = 80 * 1024 * 1024;
+
+// Lo llama el lector de cómics al abrirlo con internet.
+export async function guardarComicEnTelefono(datos: {
+  dueno: string;
+  fuente: string;
+  id: string;
+  titulo: string;
+  autor: string;
+  paginas: PaginasComic;
+  pagina: number;
+  porcentaje: number;
+}) {
+  if (typeof indexedDB === "undefined") return;
+  const todos = await listarLibros();
+  if (todos.some((l) => l.dueno !== datos.dueno)) {
+    await usar("readwrite", (a) => {
+      a.clear();
+    });
+    await borrarImagenes("todas").catch(() => {});
+    todos.length = 0;
+  }
+
+  const previo = todos.find((l) => l.clave === clave(datos.fuente, datos.id));
+  await poner({
+    clave: clave(datos.fuente, datos.id),
+    dueno: datos.dueno,
+    fuente: datos.fuente,
+    id: datos.id,
+    titulo: datos.titulo,
+    autor: datos.autor,
+    titulos: [],
+    capitulos: [],
+    comic: datos.paginas,
+    // Si había un avance hecho sin internet, se respeta.
+    capitulo: previo?.pendiente ? previo.capitulo : datos.pagina,
+    porcentaje: previo?.pendiente ? previo.porcentaje : datos.porcentaje,
+    pendiente: previo?.pendiente ?? false,
+    abiertoEn: Date.now(),
+  });
+  await recortar();
+
+  const urls =
+    datos.paginas.tipo === "pdf"
+      ? [urlArchivo(datos.fuente, datos.id)]
+      : datos.paginas.rutas.map((ruta) => urlImagen(datos.fuente, datos.id, ruta));
+  await guardarEnCache(datos.fuente, datos.id, urls, MAX_BYTES_COMIC).catch(() => {});
+}
+
+// Solo se quedan los últimos LIMITE libros abiertos.
+async function recortar() {
+  const sobrantes = (await listarLibros()).slice(LIMITE);
+  if (sobrantes.length) {
+    await usar("readwrite", (a) => {
+      for (const l of sobrantes) a.delete(l.clave);
+    });
+    await borrarImagenes(sobrantes).catch(() => {});
+  }
+}
+
 // Lo llama el lector al abrir un libro con internet.
 export async function guardarEnTelefono(datos: {
   dueno: string;
@@ -94,14 +230,22 @@ export async function guardarEnTelefono(datos: {
     await usar("readwrite", (a) => {
       a.clear();
     });
+    await borrarImagenes("todas").catch(() => {});
     todos.length = 0;
   }
 
   const k = clave(datos.fuente, datos.id);
   const previo = todos.find((l) => l.clave === k);
   const ahora = Date.now();
+  let imagenes: Imagen[][] | undefined;
 
-  if (previo && ahora - previo.abiertoEn < RENOVAR_MS && previo.capitulos.length) {
+  if (
+    previo &&
+    ahora - previo.abiertoEn < RENOVAR_MS &&
+    previo.capitulos.length &&
+    // Los guardados antes de que hubiera ilustraciones se bajan otra vez.
+    previo.imagenes !== undefined
+  ) {
     // Ya está guardado: solo se anota que se abrió y dónde va. Si había un
     // avance pendiente, se respeta (lo sube el sincronizador).
     await poner({
@@ -109,6 +253,7 @@ export async function guardarEnTelefono(datos: {
       abiertoEn: ahora,
       ...(previo.pendiente ? {} : { capitulo: datos.capitulo, porcentaje: datos.porcentaje }),
     });
+    imagenes = previo.imagenes;
   } else {
     const ruta = `/api/libro/${encodeURIComponent(datos.fuente)}/${encodeURIComponent(datos.id)}`;
     const respuesta = await fetch(ruta);
@@ -118,7 +263,9 @@ export async function guardarEnTelefono(datos: {
       autor: string;
       titulos: string[];
       capitulos: string[][];
+      imagenes?: Imagen[][];
     };
+    imagenes = libro.imagenes ?? [];
     await poner({
       clave: k,
       dueno: datos.dueno,
@@ -128,6 +275,7 @@ export async function guardarEnTelefono(datos: {
       autor: libro.autor,
       titulos: libro.titulos,
       capitulos: libro.capitulos,
+      imagenes,
       capitulo: previo?.pendiente ? previo.capitulo : datos.capitulo,
       porcentaje: previo?.pendiente ? previo.porcentaje : datos.porcentaje,
       pendiente: previo?.pendiente ?? false,
@@ -135,13 +283,10 @@ export async function guardarEnTelefono(datos: {
     });
   }
 
-  // Solo se quedan los últimos LIMITE libros abiertos.
-  const sobrantes = (await listarLibros()).slice(LIMITE);
-  if (sobrantes.length) {
-    await usar("readwrite", (a) => {
-      for (const l of sobrantes) a.delete(l.clave);
-    });
-  }
+  await recortar();
+
+  // Al final, sin prisa: las ilustraciones (las que falten).
+  await guardarImagenes(datos.fuente, datos.id, imagenes).catch(() => {});
 }
 
 // Anota dónde va la lectura de un libro guardado.
